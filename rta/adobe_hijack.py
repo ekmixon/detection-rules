@@ -23,11 +23,11 @@ def main():
 
     # backup original if it exists
     if os.path.isfile(rdrcef_exe):
-        common.log("{} already exists, backing up file.".format(rdrcef_exe))
+        common.log(f"{rdrcef_exe} already exists, backing up file.")
         common.copy_file(rdrcef_exe, backup)
         backedup = True
     else:
-        common.log("{} doesn't exist. Creating path.".format(rdrcef_exe))
+        common.log(f"{rdrcef_exe} doesn't exist. Creating path.")
         os.makedirs(rdr_cef_dir)
 
     # overwrite original

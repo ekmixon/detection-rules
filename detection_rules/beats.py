@@ -59,7 +59,7 @@ def _decompress_and_save_schema(url, release_name):
     print(f"Saving etc/beats_schema/{release_name}.json")
 
     compressed = gzip_compress(json.dumps(fs, sort_keys=True, cls=DateTimeEncoder))
-    path = get_etc_path("beats_schemas", release_name + ".json.gz")
+    path = get_etc_path("beats_schemas", f"{release_name}.json.gz")
     with open(path, 'wb') as f:
         f.write(compressed)
 
@@ -70,11 +70,14 @@ def download_beats_schema(version: str):
     releases = requests.get(url)
 
     version = f'v{version.lstrip("v")}'
-    beats_release = None
-    for release in releases.json():
-        if release['tag_name'] == version:
-            beats_release = release
-            break
+    beats_release = next(
+        (
+            release
+            for release in releases.json()
+            if release['tag_name'] == version
+        ),
+        None,
+    )
 
     if not beats_release:
         print(f'beats release {version} not found!')
@@ -168,11 +171,16 @@ def get_beats_sub_schema(schema: dict, beat: str, module: str, *datasets: str):
 
     for dataset in datasets:
         # replace aws.s3 -> s3
-        if dataset.startswith(module + "."):
+        if dataset.startswith(f"{module}."):
             dataset = dataset[len(module) + 1:]
 
         dataset_dir = module_dir.get("folders", {}).get(dataset, {})
-        flattened.extend(get_field_schema(dataset_dir, prefix=module + ".", include_common=True))
+        flattened.extend(
+            get_field_schema(
+                dataset_dir, prefix=f"{module}.", include_common=True
+            )
+        )
+
 
     # we also need to capture (beta?) fields which are directly within the module _meta.files.fields
     flattened.extend(get_field_schema(module_dir, include_common=True))
@@ -184,8 +192,7 @@ def get_beats_sub_schema(schema: dict, beat: str, module: str, *datasets: str):
 def get_versions() -> List[Version]:
     versions = []
     for filename in os.listdir(get_etc_path("beats_schemas")):
-        version_match = re.match(r'v(.+)\.json\.gz', filename)
-        if version_match:
+        if version_match := re.match(r'v(.+)\.json\.gz', filename):
             versions.append(Version(version_match.groups()[0]))
 
     return versions
@@ -224,7 +231,7 @@ def get_schema_from_datasets(beats, modules, datasets, version=None):
         # if no modules are specified then grab them all
         # all_modules = list(beats_schema.get(beat, {}).get("folders", {}).get("module", {}).get("folders", {}))
         # beat_modules = modules or all_modules
-        filtered.update(get_beat_root_schema(beats_schema, beat))
+        filtered |= get_beat_root_schema(beats_schema, beat)
 
         for module in modules:
             filtered.update(get_beats_sub_schema(beats_schema, beat, module, *datasets))
@@ -270,5 +277,4 @@ def get_schema_from_kql(tree: kql.ast.BaseNode, beats: list, version: str = None
 
 def parse_beats_from_index(index: Optional[list]) -> List[str]:
     indexes = index or []
-    beat_types = [index.split("-")[0] for index in indexes if "beat-*" in index]
-    return beat_types
+    return [index.split("-")[0] for index in indexes if "beat-*" in index]

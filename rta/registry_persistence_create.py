@@ -75,7 +75,10 @@ def main():
     ]
 
     for victim in debugger_targets:
-        common.log("Registering Image File Execution Options debugger for %s -> %s" % (victim, TARGET_APP))
+        common.log(
+            f"Registering Image File Execution Options debugger for {victim} -> {TARGET_APP}"
+        )
+
         base_key = "Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\%s" % victim
         common.write_reg(common.HKLM, base_key, "Debugger", TARGET_APP, restore=True)
 

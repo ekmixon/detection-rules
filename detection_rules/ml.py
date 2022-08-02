@@ -184,13 +184,12 @@ class MachineLearningClient:
 
     def get_related_files(self) -> dict:
         """Check for the presence and status of ML bundle files on a stack."""
-        files = {
+        return {
             'pipeline': self.get_related_pipelines(),
             'script': self.get_related_scripts(),
             'model': self.get_related_model(),
-            'release': self.get_related_release()
+            'release': self.get_related_release(),
         }
-        return files
 
     def get_related_release(self) -> ReleaseManifest:
         """Get the GitHub release related to a model."""
@@ -204,13 +203,19 @@ class MachineLearningClient:
         models = MlClient(es_client).get_trained_models()['trained_model_configs']
         manifests = get_ml_model_manifests_by_model_id()
 
-        files = {
-            'pipeline': {n: s for n, s in pipelines.items() if n.lower().startswith('ml_')},
-            'script': {n: s for n, s in scripts.items() if n.lower().startswith('ml_')},
-            'model': {m['model_id']: {'model': m, 'release': manifests[m['model_id']]}
-                      for m in models if m['model_id'] in manifests},
+        return {
+            'pipeline': {
+                n: s for n, s in pipelines.items() if n.lower().startswith('ml_')
+            },
+            'script': {
+                n: s for n, s in scripts.items() if n.lower().startswith('ml_')
+            },
+            'model': {
+                m['model_id']: {'model': m, 'release': manifests[m['model_id']]}
+                for m in models
+                if m['model_id'] in manifests
+            },
         }
-        return files
 
     @classmethod
     def remove_ml_scripts_pipelines(cls, es_client: Elasticsearch, ml_type: List[str]) -> dict:
@@ -288,11 +293,15 @@ def check_files(ctx):
     for file_type, data in files.items():
         if file_type == 'model':
             continue
-        for name in list(data):
-            results.append({'file_type': file_type, 'name': name})
-
-    for model_name, model in files['model'].items():
-        results.append({'file_type': 'model', 'name': model_name, 'related_release': model['release'].tag_name})
+        results.extend({'file_type': file_type, 'name': name} for name in list(data))
+    results.extend(
+        {
+            'file_type': 'model',
+            'name': model_name,
+            'related_release': model['release'].tag_name,
+        }
+        for model_name, model in files['model'].items()
+    )
 
     fields = ['file_type', 'name', 'related_release']
     table = Table.from_list(fields, results)
@@ -334,8 +343,10 @@ def remove_scripts_pipelines(ctx: click.Context, **ml_types):
 
     results = []
     for file_type, response in status.items():
-        for name, result in response.items():
-            results.append({'file_type': file_type, 'name': name, 'status': result})
+        results.extend(
+            {'file_type': file_type, 'name': name, 'status': result}
+            for name, result in response.items()
+        )
 
     fields = ['file_type', 'name', 'status']
     table = Table.from_list(fields, results)

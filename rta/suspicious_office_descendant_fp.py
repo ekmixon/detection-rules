@@ -28,19 +28,24 @@ def main():
 
     for office_app in ["winword.exe", "excel.exe"]:
 
-        common.log("Emulating %s" % office_app)
+        common.log(f"Emulating {office_app}")
         office_path = os.path.abspath(office_app)
         common.copy_file(cmd_path, office_path)
 
         for command in suspicious_apps:
-            common.execute('%s /c %s /c %s' % (office_path, browser_path, command), timeout=5, kill=True)
+            common.execute(
+                f'{office_path} /c {browser_path} /c {command}',
+                timeout=5,
+                kill=True,
+            )
 
-        common.log('Cleanup %s' % office_path)
+
+        common.log(f'Cleanup {office_path}')
         common.remove_file(office_path)
 
     common.log("Sleep 5 to allow processes to finish")
     time.sleep(5)
-    common.log('Cleanup %s' % browser_path)
+    common.log(f'Cleanup {browser_path}')
     common.remove_file(browser_path)
 
 

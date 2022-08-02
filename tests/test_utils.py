@@ -24,8 +24,9 @@ class TestTimeUtils(unittest.TestCase):
             'epoch_second': lambda x: round(time.time()) + x,
             'unix_micros': lambda x: time.time() + x,
             'unix_millis': lambda x: round(time.time(), 3) + x,
-            'strict_date_optional_time': lambda x: '2020-05-13T04:36:' + str(15 + x) + '.394Z'
+            'strict_date_optional_time': lambda x: f'2020-05-13T04:36:{str(15 + x)}.394Z',
         }
+
 
         def _get_data(func):
             data = [
@@ -44,7 +45,11 @@ class TestTimeUtils(unittest.TestCase):
     def assert_sort(self, normalized_events, date_format):
         """Assert normalize and sort."""
         order = [e['id'] for e in normalized_events]
-        self.assertListEqual([1, 2, 3, 4, 5, 6], order, 'Sorting failed for date_format: {}'.format(date_format))
+        self.assertListEqual(
+            [1, 2, 3, 4, 5, 6],
+            order,
+            f'Sorting failed for date_format: {date_format}',
+        )
 
     def test_time_normalize(self):
         """Test normalize_timing_from_date_format."""

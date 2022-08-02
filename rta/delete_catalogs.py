@@ -16,7 +16,7 @@ from . import common
 @common.requires_os(common.WINDOWS)
 def main():
     warning = "Deleting the backup catalog may have unexpected consequences. Operational issues are unknown."
-    common.log("WARNING: %s" % warning, log_type="!")
+    common.log(f"WARNING: {warning}", log_type="!")
     time.sleep(2.5)
 
     common.execute(["wbadmin", "delete", "catalog", "-quiet"])

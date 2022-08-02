@@ -24,7 +24,7 @@ def main():
 
     common.log("System Restore Process Evasion")
     program_path = common.get_path("bin", "myapp.exe")
-    common.log("Finding a writeable directory in %s" % SYSTEM_RESTORE)
+    common.log(f"Finding a writeable directory in {SYSTEM_RESTORE}")
     target_directory = common.find_writeable_directory(SYSTEM_RESTORE)
 
     if not target_directory:

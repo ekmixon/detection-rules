@@ -42,7 +42,7 @@ def filter_rule(rule: TOMLRule, config_filter: dict, exclude_fields: Optional[di
         if key not in flat_rule:
             return False
 
-        values = set([v.lower() if isinstance(v, str) else v for v in values])
+        values = {v.lower() if isinstance(v, str) else v for v in values}
         rule_value = flat_rule[key]
 
         if isinstance(rule_value, list):
@@ -53,16 +53,18 @@ def filter_rule(rule: TOMLRule, config_filter: dict, exclude_fields: Optional[di
         if len(rule_values & values) == 0:
             return False
 
-    exclude_fields = exclude_fields or {}
-    if exclude_fields:
+    if exclude_fields := exclude_fields or {}:
         from .rule import get_unique_query_fields
 
         unique_fields = get_unique_query_fields(rule)
 
         for index, fields in exclude_fields.items():
-            if unique_fields and (rule.contents.data.index == index or index == 'any'):
-                if set(unique_fields) & set(fields):
-                    return False
+            if (
+                unique_fields
+                and (rule.contents.data.index == index or index == 'any')
+                and set(unique_fields) & set(fields)
+            ):
+                return False
 
     return True
 
@@ -121,20 +123,15 @@ class Package(object):
             '// - detection-rules repo using CLI command build-release',
             '// Do not hand edit. Run script/command to regenerate package information instead',
         ]
-        rule_imports = [f"import rule{i} from './{os.path.splitext(os.path.basename(r.path))[0] + '.json'}';"
-                        for i, r in enumerate(sorted_rules, 1)]
+        rule_imports = [
+            f"import rule{i} from './{os.path.splitext(os.path.basename(r.path))[0]}.json';"
+            for i, r in enumerate(sorted_rules, 1)
+        ]
+
         const_exports = ['export const rawRules = [']
         const_exports.extend(f"  rule{i}," for i, _ in enumerate(sorted_rules, 1))
-        const_exports.append("];")
-        const_exports.append("")
-
-        index_ts = [JS_LICENSE, ""]
-        index_ts.extend(comments)
-        index_ts.append("")
-        index_ts.extend(rule_imports)
-        index_ts.append("")
-        index_ts.extend(const_exports)
-
+        const_exports.extend(("];", ""))
+        index_ts = [JS_LICENSE, "", *comments, "", *rule_imports, "", *const_exports]
         with open(os.path.join(save_dir, 'index.ts'), 'wt') as f:
             f.write('\n'.join(index_ts))
 
@@ -162,9 +159,10 @@ class Package(object):
 
     def get_consolidated(self, as_api=True):
         """Get a consolidated package of the rules in a single file."""
-        full_package = []
-        for rule in self.rules:
-            full_package.append(rule.contents.to_api_format() if as_api else rule.contents.to_dict())
+        full_package = [
+            rule.contents.to_api_format() if as_api else rule.contents.to_dict()
+            for rule in self.rules
+        ]
 
         return json.dumps(full_package, sort_keys=True)
 
@@ -194,11 +192,16 @@ class Package(object):
                                 base_dir=os.path.basename(rules_dir))
 
             # zip everything and place in release root
-            shutil.make_archive(os.path.join(save_dir, '{}-all'.format(self.name)), 'zip',
-                                root_dir=os.path.dirname(extras_dir), base_dir=os.path.basename(extras_dir))
+            shutil.make_archive(
+                os.path.join(save_dir, f'{self.name}-all'),
+                'zip',
+                root_dir=os.path.dirname(extras_dir),
+                base_dir=os.path.basename(extras_dir),
+            )
+
 
         if verbose:
-            click.echo('Package saved to: {}'.format(save_dir))
+            click.echo(f'Package saved to: {save_dir}')
 
     def export(self, outfile, downgrade_version=None, verbose=True, skip_unsupported=False):
         """Export rules into a consolidated ndjson file."""
@@ -213,7 +216,7 @@ class Package(object):
         sha256 = hashlib.sha256(contents).hexdigest()
 
         if verbose:
-            click.echo('- sha256: {}'.format(sha256))
+            click.echo(f'- sha256: {sha256}')
 
         return sha256
 
@@ -235,9 +238,7 @@ class Package(object):
         if verbose:
             click.echo(f' - {len(all_rules) - len(rules)} rules excluded from package')
 
-        package = cls(rules, verbose=verbose, **config)
-
-        return package
+        return cls(rules, verbose=verbose, **config)
 
     def generate_summary_and_changelog(self, changed_rule_ids, new_rule_ids, removed_rules):
         """Generate stats on package."""
@@ -308,14 +309,14 @@ class Package(object):
             str_fmt = ''
             for sd, rules in sorted(rule_dict.items(), key=lambda x: x[0]):
                 str_fmt += f'\n{sd} ({len(rules)})\n'
-                str_fmt += '\n'.join(' - ' + s for s in sorted(rules))
+                str_fmt += '\n'.join(f' - {s}' for s in sorted(rules))
             return str_fmt or '\nNone'
 
         def format_changelog_rule_str(rule_dict):
             str_fmt = ''
             for sd, rules in sorted(rule_dict.items(), key=lambda x: x[0]):
                 str_fmt += f'\n- **{sd}** ({len(rules)})\n'
-                str_fmt += '\n'.join('   - ' + s for s in sorted(rules))
+                str_fmt += '\n'.join(f'   - {s}' for s in sorted(rules))
             return str_fmt or '\nNone'
 
         def rule_count(rule_dict):

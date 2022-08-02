@@ -17,7 +17,7 @@ from . import common
 @common.requires_os(common.WINDOWS)
 def main():
     message = "Deleting the USN journal may have unintended consequences"
-    common.log("WARNING: %s" % message, log_type="!")
+    common.log(f"WARNING: {message}", log_type="!")
     time.sleep(2.5)
     common.execute(["fsutil", "usn", "deletejournal", "/d", "C:"])
 

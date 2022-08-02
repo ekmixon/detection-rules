@@ -14,7 +14,7 @@ from . import common
 @common.requires_os(common.WINDOWS)
 def main():
     path = "c:\\rta"
-    common.log("Searching for passwords on %s" % path)
+    common.log(f"Searching for passwords on {path}")
     common.execute(["dir", path, "/s", "/b", "|", "findstr", "password"], shell=True, timeout=15)
 
 

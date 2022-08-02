@@ -29,9 +29,7 @@ class TestRuleTomlFormatter(unittest.TestCase):
             with open(tmp_file, 'r') as f:
                 formatted_contents = pytoml.load(f)
 
-            # callbacks such as nested normalize leave in line breaks, so this must be manually done
-            query = data.get('rule', {}).get('query')
-            if query:
+            if query := data.get('rule', {}).get('query'):
                 data['rule']['query'] = query.strip()
 
             original = json.dumps(copy.deepcopy(data), sort_keys=True)
@@ -40,9 +38,7 @@ class TestRuleTomlFormatter(unittest.TestCase):
                 kwargs = kwargs or {}
                 formatted_contents = callback(formatted_contents, **kwargs)
 
-            # callbacks such as nested normalize leave in line breaks, so this must be manually done
-            query = formatted_contents.get('rule', {}).get('query')
-            if query:
+            if query := formatted_contents.get('rule', {}).get('query'):
                 formatted_contents['rule']['query'] = query.strip()
 
             formatted = json.dumps(formatted_contents, sort_keys=True)

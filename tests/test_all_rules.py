@@ -76,8 +76,9 @@ class TestValidRules(BaseRuleTest):
         for rule in self.all_rules:
             name_map[rule.path.name].append(rule.path.name)
 
-        duplicates = {name: paths for name, paths in name_map.items() if len(paths) > 1}
-        if duplicates:
+        if duplicates := {
+            name: paths for name, paths in name_map.items() if len(paths) > 1
+        }:
             self.fail(f"Found duplicated file names {duplicates}")
 
 
@@ -92,9 +93,7 @@ class TestThreatMappings(BaseRuleTest):
 
         for rule in self.all_rules:
             revoked_techniques = {}
-            threat_mapping = rule.contents.data.threat
-
-            if threat_mapping:
+            if threat_mapping := rule.contents.data.threat:
                 for entry in threat_mapping:
                     for technique in (entry.technique or []):
                         if technique.id in revoked + deprecated:
@@ -108,14 +107,16 @@ class TestThreatMappings(BaseRuleTest):
     def test_tactic_to_technique_correlations(self):
         """Ensure rule threat info is properly related to a single tactic and technique."""
         for rule in self.all_rules:
-            threat_mapping = rule.contents.data.threat or []
-            if threat_mapping:
+            if threat_mapping := rule.contents.data.threat or []:
                 for entry in threat_mapping:
                     tactic = entry.tactic
                     techniques = entry.technique or []
 
-                    mismatched = [t.id for t in techniques if t.id not in attack.matrix[tactic.name]]
-                    if mismatched:
+                    if mismatched := [
+                        t.id
+                        for t in techniques
+                        if t.id not in attack.matrix[tactic.name]
+                    ]:
                         self.fail(f'mismatched ATT&CK techniques for rule: {self.rule_str(rule)} '
                                   f'{", ".join(mismatched)} not under: {tactic["name"]}')
 
@@ -146,9 +147,7 @@ class TestThreatMappings(BaseRuleTest):
                                          f'technique ID {technique.id} does not match the reference URL ID '
                                          f'{technique.reference}')
 
-                        # sub-techniques
-                        sub_techniques = technique.subtechnique or []
-                        if sub_techniques:
+                        if sub_techniques := technique.subtechnique or []:
                             for sub_technique in sub_techniques:
                                 expected_sub_technique = attack.technique_lookup[sub_technique.id]['name']
                                 self.assertEqual(expected_sub_technique, sub_technique.name,
@@ -168,9 +167,7 @@ class TestThreatMappings(BaseRuleTest):
         for rule in self.all_rules:
             threat_mapping = rule.contents.data.threat
             tactics = [t.tactic.name for t in threat_mapping or []]
-            duplicates = sorted(set(t for t in tactics if tactics.count(t) > 1))
-
-            if duplicates:
+            if duplicates := sorted({t for t in tactics if tactics.count(t) > 1}):
                 self.fail(f'{self.rule_str(rule)} duplicate tactics defined for {duplicates}. '
                           f'Flatten to a single entry per tactic')
 
@@ -268,8 +265,7 @@ class TestRuleTags(BaseRuleTest):
             if 'Continuous Monitoring' in rule_tags or rule.contents.data.type == 'machine_learning':
                 continue
 
-            threat = rule.contents.data.threat
-            if threat:
+            if threat := rule.contents.data.threat:
                 missing = []
                 threat_tactic_names = [e.tactic.name for e in threat]
                 primary_tactic = threat_tactic_names[0]
@@ -317,7 +313,7 @@ class TestRuleTimelines(BaseRuleTest):
             if timeline_id:
                 unknown_id = f'{self.rule_str(rule)} Unknown timeline_id: {timeline_id}.'
                 unknown_id += f' replace with {", ".join(TIMELINE_TEMPLATES)} ' \
-                              f'or update this unit test with acceptable ids'
+                                  f'or update this unit test with acceptable ids'
                 self.assertIn(timeline_id, list(TIMELINE_TEMPLATES), unknown_id)
 
                 unknown_title = f'{self.rule_str(rule)} unknown timeline_title: {timeline_title}'
@@ -395,12 +391,12 @@ class TestRuleMetadata(BaseRuleTest):
 
             deprecated_rules[rule.id] = rule
             err_msg = f'{self.rule_str(rule)} cannot be deprecated if it has not been version locked. ' \
-                      f'Convert to `development` or delete the rule file instead'
+                          f'Convert to `development` or delete the rule file instead'
             self.assertIn(rule.id, versions, err_msg)
 
             rule_path = rule.path.relative_to(rules_path)
             err_msg = f'{self.rule_str(rule)} deprecated rules should be stored in ' \
-                      f'"{deprecated_path}" folder'
+                          f'"{deprecated_path}" folder'
             self.assertEqual('_deprecated', rule_path.parts[-2], err_msg)
 
             err_msg = f'{self.rule_str(rule)} missing deprecation date'
@@ -457,14 +453,13 @@ class TestRuleMetadata(BaseRuleTest):
             self.fail(f'The following rules have been improperly demoted:\n{err_msg}')
 
     def test_all_min_stack_rules_have_comment(self):
-        failures = []
-
-        for rule in self.all_rules:
-            if rule.contents.metadata.min_stack_version and not rule.contents.metadata.min_stack_comments:
-                failures.append(f'{self.rule_str(rule)} missing `metadata.min_stack_comments`. min_stack_version: '
-                                f'{rule.contents.metadata.min_stack_version}')
-
-        if failures:
+        if failures := [
+            f'{self.rule_str(rule)} missing `metadata.min_stack_comments`. min_stack_version: '
+            f'{rule.contents.metadata.min_stack_version}'
+            for rule in self.all_rules
+            if rule.contents.metadata.min_stack_version
+            and not rule.contents.metadata.min_stack_comments
+        ]:
             err_msg = '\n'.join(failures)
             self.fail(f'The following ({len(failures)}) rules have a `min_stack_version` defined but missing comments:'
                       f'\n{err_msg}')
@@ -486,7 +481,7 @@ class TestRuleTiming(BaseRuleTest):
             if rule.contents.data.type == 'query':
                 required = True
             elif rule.contents.data.type == 'eql' and \
-                    eql.utils.get_query_type(rule.contents.data.ast) != 'sequence':
+                        eql.utils.get_query_type(rule.contents.data.ast) != 'sequence':
                 required = True
 
             if required and rule.contents.data.timestamp_override != 'event.ingested':
@@ -505,9 +500,12 @@ class TestRuleTiming(BaseRuleTest):
         for rule in self.all_rules:
             contents = rule.contents
 
-            if isinstance(contents.data, QueryRuleData):
-                if set(getattr(contents.data, "index", None) or []) & long_indexes and not contents.data.from_:
-                    missing.append(rule)
+            if (
+                isinstance(contents.data, QueryRuleData)
+                and set(getattr(contents.data, "index", None) or []) & long_indexes
+                and not contents.data.from_
+            ):
+                missing.append(rule)
 
         if missing:
             rules_str = '\n '.join(self.rule_str(r, trailer=None) for r in missing)
@@ -526,9 +524,9 @@ class TestRuleTiming(BaseRuleTest):
                     unknowns.append(self.rule_str(rule, trailer=None))
                 else:
                     look_back = rule.contents.data.look_back
-                    max_span = rule.contents.data.max_span
                     expected = look_back + ten_minutes
 
+                    max_span = rule.contents.data.max_span
                     if expected < max_span:
                         invalids.append(f'{self.rule_str(rule)} lookback: {look_back}, maxspan: {max_span}, '
                                         f'expected: >={expected}')
@@ -583,7 +581,7 @@ class TestIntegrationRules(BaseRuleTest):
         """Test that rules which require a config note are using standard verbiage."""
         config = '## Config\n\n'
         beats_integration_pattern = config + 'The {} Fleet integration, Filebeat module, or similarly ' \
-                                             'structured data is required to be compatible with this rule.'
+                                                 'structured data is required to be compatible with this rule.'
         render = beats_integration_pattern.format
         integration_notes = {
             'aws': render('AWS'),
@@ -597,9 +595,7 @@ class TestIntegrationRules(BaseRuleTest):
 
         for rule in self.all_rules:
             integration = rule.contents.metadata.integration
-            note_str = integration_notes.get(integration)
-
-            if note_str:
+            if note_str := integration_notes.get(integration):
                 self.assert_(rule.contents.data.note, f'{self.rule_str(rule)} note required for config information')
 
                 if note_str not in rule.contents.data.note:

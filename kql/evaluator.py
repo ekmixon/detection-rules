@@ -16,16 +16,20 @@ class FilterGenerator(Walker):
     __cidr_cache = {}
 
     def _walk_default(self, node, *args, **kwargs):
-        raise KqlCompileError("Unable to convert {}".format(node))
+        raise KqlCompileError(f"Unable to convert {node}")
 
     @classmethod
     def equals(cls, term, value):
-        if utils.is_string(term) and utils.is_string(value):
-            if CidrMatch.ip_compiled.match(term) and CidrMatch.cidr_compiled.match(value):
-                # check for an ipv4 cidr
-                if value not in cls.__cidr_cache:
-                    cls.__cidr_cache[value] = CidrMatch.get_callback(None, eql.ast.String(value))
-                return cls.__cidr_cache[value](term)
+        if (
+            utils.is_string(term)
+            and utils.is_string(value)
+            and CidrMatch.ip_compiled.match(term)
+            and CidrMatch.cidr_compiled.match(value)
+        ):
+            # check for an ipv4 cidr
+            if value not in cls.__cidr_cache:
+                cls.__cidr_cache[value] = CidrMatch.get_callback(None, eql.ast.String(value))
+            return cls.__cidr_cache[value](term)
 
         return term == value
 
@@ -33,19 +37,15 @@ class FilterGenerator(Walker):
     def get_terms(cls, document, path):
         if isinstance(document, (tuple, list)):
             for d in document:
-                for term in cls.get_terms(d, path):
-                    yield term
-
+                yield from cls.get_terms(d, path)
         elif isinstance(document, dict):
             document = document.get(path[0])
             path = path[1:]
 
             if len(path) > 0:
-                for term in cls.get_terms(document, path):
-                    yield term
+                yield from cls.get_terms(document, path)
             elif isinstance(document, (tuple, list)):
-                for term in document:
-                    yield term
+                yield from document
             elif document is not None:
                 yield document
 

@@ -16,7 +16,7 @@ parsed_args, remaining = parser.parse_known_args()
 ttp_name, _ = os.path.splitext(os.path.basename(parsed_args.ttp_name))
 
 if ttp_name not in get_ttp_names():
-    raise ValueError("Unknown RTA {}".format(ttp_name))
+    raise ValueError(f"Unknown RTA {ttp_name}")
 
-module = importlib.import_module("rta." + ttp_name)
+module = importlib.import_module(f"rta.{ttp_name}")
 exit(module.main(*remaining))

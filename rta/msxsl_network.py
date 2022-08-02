@@ -23,7 +23,7 @@ def main():
     common.clear_web_cache()
 
     new_callback = "http://%s:%d" % (ip, port)
-    common.log("Updating the callback to %s" % new_callback)
+    common.log(f"Updating the callback to {new_callback}")
     common.patch_regex(XSL_FILE, common.CALLBACK_REGEX, new_callback)
 
     common.execute([MS_XSL, XML_FILE, XSL_FILE])

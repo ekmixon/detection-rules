@@ -24,7 +24,10 @@ class BaseResource(dict):
         for r in resources:
             assert isinstance(r, cls)
 
-        responses = Kibana.current().post(cls.BASE_URI + "/_bulk_create", data=resources)
+        responses = Kibana.current().post(
+            f"{cls.BASE_URI}/_bulk_create", data=resources
+        )
+
         return [cls(r) for r in responses]
 
     def create(self):
@@ -40,7 +43,9 @@ class BaseResource(dict):
         params.setdefault("sort_field", "_id")
         params.setdefault("sort_order", "asc")
 
-        return ResourceIterator(cls, cls.BASE_URI + "/_find", per_page=per_page, **params)
+        return ResourceIterator(
+            cls, f"{cls.BASE_URI}/_find", per_page=per_page, **params
+        )
 
     @classmethod
     def from_id(cls, resource_id) -> 'BaseResource':

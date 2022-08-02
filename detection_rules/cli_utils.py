@@ -109,7 +109,7 @@ def rule_prompt(path=None, rule_type=None, required_only=True, save=True, verbos
     kwargs = copy.deepcopy(kwargs)
 
     if 'rule' in kwargs and 'metadata' in kwargs:
-        kwargs.update(kwargs.pop('metadata'))
+        kwargs |= kwargs.pop('metadata')
         kwargs.update(kwargs.pop('rule'))
 
     rule_type = rule_type or kwargs.get('type') or \
@@ -153,7 +153,7 @@ def rule_prompt(path=None, rule_type=None, required_only=True, save=True, verbos
                     click.secho(f'{e} - entry not saved for: {tactic}', fg='red', err=True)
                     continue
 
-            if len(threat_map) > 0:
+            if threat_map:
                 contents[name] = threat_map
             continue
 
@@ -166,9 +166,9 @@ def rule_prompt(path=None, rule_type=None, required_only=True, save=True, verbos
             contents[name] = schema_prompt(name, value=kwargs.pop(name))
             continue
 
-        result = schema_prompt(name, required=name in required_fields, **options.copy())
-
-        if result:
+        if result := schema_prompt(
+            name, required=name in required_fields, **options.copy()
+        ):
             if name not in required_fields and result == options.get('default', ''):
                 skipped.append(name)
                 continue
@@ -176,15 +176,20 @@ def rule_prompt(path=None, rule_type=None, required_only=True, save=True, verbos
             contents[name] = result
 
     suggested_path = os.path.join(RULES_DIR, contents['name'])  # TODO: UPDATE BASED ON RULE STRUCTURE
-    path = os.path.realpath(path or input('File path for rule [{}]: '.format(suggested_path)) or suggested_path)
+    path = os.path.realpath(
+        path
+        or input(f'File path for rule [{suggested_path}]: ')
+        or suggested_path
+    )
+
     meta = {'creation_date': creation_date, 'updated_date': creation_date, 'maturity': 'development'}
 
     try:
         rule = TOMLRule(path=Path(path), contents=TOMLRuleContents.from_dict({'rule': contents, 'metadata': meta}))
     except kql.KqlParseError as e:
         if e.error_msg == 'Unknown field':
-            warning = ('If using a non-ECS field, you must update "ecs{}.non-ecs-schema.json" under `beats` or '
-                       '`legacy-endgame` (Non-ECS fields should be used minimally).'.format(os.path.sep))
+            warning = f'If using a non-ECS field, you must update "ecs{os.path.sep}.non-ecs-schema.json" under `beats` or `legacy-endgame` (Non-ECS fields should be used minimally).'
+
             click.secho(e.args[0], fg='red', err=True)
             click.secho(warning, fg='yellow', err=True)
             click.pause()

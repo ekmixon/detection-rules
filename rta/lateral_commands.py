@@ -24,16 +24,17 @@ MY_APP = common.get_path("bin", "myapp.exe")
 @common.dependencies(MY_APP)
 def main(remote_host=None):
     remote_host = remote_host or common.get_ip()
-    common.log("Attempting to laterally move to %s" % remote_host)
+    common.log(f"Attempting to laterally move to {remote_host}")
 
     remote_host = common.get_ipv4_address(remote_host)
-    common.log("Using ip address %s" % remote_host)
+    common.log(f"Using ip address {remote_host}")
 
     # Put the hostname in quotes for WMIC, but leave it as is
-    if not re.match(common.IP_REGEX, remote_host):
-        wmi_node = '"{}"'.format(remote_host)
-    else:
-        wmi_node = remote_host
+    wmi_node = (
+        remote_host
+        if re.match(common.IP_REGEX, remote_host)
+        else f'"{remote_host}"'
+    )
 
     commands = [
         "sc.exe \\\\{host} create test_service binPath= %s" % MY_APP,
@@ -62,7 +63,10 @@ def main(remote_host=None):
 
     # Check if the account is local or a domain
     if domain in (hostname, "NT AUTHORITY"):
-        common.log("Need password for remote scheduled task in workgroup. Performing instead on %s." % common.get_ip())
+        common.log(
+            f"Need password for remote scheduled task in workgroup. Performing instead on {common.get_ip()}."
+        )
+
         schtasks_host = common.get_ip()
 
     task_name = "test_task-%d" % os.getpid()

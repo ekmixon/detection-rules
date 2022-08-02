@@ -61,8 +61,7 @@ class VersionLock:
         if rule_id in self.version_lock:
             latest_version_info = self.version_lock[rule_id]
             stack_version_info = latest_version_info.get("previous", {}).get(min_stack_version, latest_version_info)
-            existing_sha256: str = stack_version_info['sha256']
-            return existing_sha256
+            return stack_version_info['sha256']
 
     def manage_versions(self, rules: RuleCollection,
                         exclude_version_update=False, save_changes=False,
@@ -78,8 +77,14 @@ class VersionLock:
 
         already_deprecated = set(current_deprecated_lock)
         deprecated_rules = set(rules.deprecated.id_map)
-        new_rules = set(rule.id for rule in rules if rule.contents.latest_version is None) - deprecated_rules
-        changed_rules = set(rule.id for rule in rules if rule.contents.is_dirty) - deprecated_rules
+        new_rules = {
+            rule.id for rule in rules if rule.contents.latest_version is None
+        } - deprecated_rules
+
+        changed_rules = {
+            rule.id for rule in rules if rule.contents.is_dirty
+        } - deprecated_rules
+
 
         # manage deprecated rules
         newly_deprecated = deprecated_rules - already_deprecated
@@ -107,7 +112,7 @@ class VersionLock:
                 if not current_rule_lock or min_stack == latest_locked_stack_version:
                     # 1) no breaking changes ever made or the first time a rule is created
                     # 2) on the latest, after a breaking change has been locked
-                    current_rule_lock.update(lock_info)
+                    current_rule_lock |= lock_info
 
                     # add the min_stack_version to the lock if it's explicitly set
                     if rule.contents.metadata.min_stack_version is not None:
@@ -131,7 +136,7 @@ class VersionLock:
                 elif min_stack < latest_locked_stack_version:
                     # 4) on an old stack, after a breaking change has been made
                     assert str(min_stack) in current_rule_lock.get("previous", {}), \
-                        f"Expected {rule.id} @ v{min_stack} in the rule lock"
+                            f"Expected {rule.id} @ v{min_stack} in the rule lock"
 
                     # TODO: Figure out whether we support locking old versions and if we want to
                     #       "leave room" by skipping versions when breaking changes are made.

@@ -52,13 +52,12 @@ class RtaEvents(object):
         """Prepare and get the dump path."""
         if rta_name:
             dump_dir = get_path('unit_tests', 'data', 'true_positives', rta_name)
-            os.makedirs(dump_dir, exist_ok=True)
-            return dump_dir
         else:
             time_str = time.strftime('%Y%m%dT%H%M%SL')
             dump_dir = os.path.join(COLLECTION_DIR, host_id or 'unknown_host', time_str)
-            os.makedirs(dump_dir, exist_ok=True)
-            return dump_dir
+
+        os.makedirs(dump_dir, exist_ok=True)
+        return dump_dir
 
     def evaluate_against_rule_and_update_mapping(self, rule_id, rta_name, verbose=True):
         """Evaluate a rule against collected events and update mapping."""
@@ -67,17 +66,14 @@ class RtaEvents(object):
         rule = next((rule for rule in RuleCollection.default() if rule.id == rule_id), None)
         assert rule is not None, f"Unable to find rule with ID {rule_id}"
         merged_events = combine_sources(*self.events.values())
-        filtered = evaluate(rule, merged_events)
-
-        if filtered:
+        if filtered := evaluate(rule, merged_events):
             sources = [e['agent']['type'] for e in filtered]
             mapping_update = rta_mappings.add_rule_to_mapping_file(rule, len(filtered), rta_name, *sources)
 
             if verbose:
                 click.echo('Updated rule-mapping file with: \n{}'.format(json.dumps(mapping_update, indent=2)))
-        else:
-            if verbose:
-                click.echo('No updates to rule-mapping file; No matching results')
+        elif verbose:
+            click.echo('No updates to rule-mapping file; No matching results')
 
     def echo_events(self, pager=False, pretty=True):
         """Print events to stdout."""
@@ -91,10 +87,10 @@ class RtaEvents(object):
         dump_dir = dump_dir or self._get_dump_dir(rta_name=rta_name, host_id=host_id)
 
         for source, events in self.events.items():
-            path = os.path.join(dump_dir, source + '.jsonl')
+            path = os.path.join(dump_dir, f'{source}.jsonl')
             with open(path, 'w') as f:
                 f.writelines([json.dumps(e, sort_keys=True) + '\n' for e in events])
-                click.echo('{} events saved to: {}'.format(len(events), path))
+                click.echo(f'{len(events)} events saved to: {path}')
 
 
 class CollectEvents(object):
@@ -107,8 +103,10 @@ class CollectEvents(object):
     def _build_timestamp_map(self, index_str):
         """Build a mapping of indexes to timestamp data formats."""
         mappings = self.client.indices.get_mapping(index=index_str)
-        timestamp_map = {n: m['mappings'].get('properties', {}).get('@timestamp', {}) for n, m in mappings.items()}
-        return timestamp_map
+        return {
+            n: m['mappings'].get('properties', {}).get('@timestamp', {})
+            for n, m in mappings.items()
+        }
 
     def _get_last_event_time(self, index_str, dsl=None):
         """Get timestamp of most recent event."""
@@ -151,7 +149,7 @@ class CollectEvents(object):
         if start_time or end_time:
             end_time = end_time or 'now'
             dsl = formatted_dsl['filter']['bool']['filter'] if language == 'eql' else \
-                formatted_dsl['query']['bool'].setdefault('filter', [])
+                    formatted_dsl['query']['bool'].setdefault('filter', [])
             add_range_to_dsl(dsl, start_time, end_time)
 
         return index_str, formatted_dsl, lucene_query
@@ -258,14 +256,12 @@ class CollectEvents(object):
         index_str, formatted_dsl, lucene_query = self._prep_query(query=query, language=language, index=index,
                                                                   start_time=start_time, end_time=end_time)
 
-        # EQL API has no count endpoint
-        if language == 'eql':
-            results = self.search(query=query, language=language, index=index, start_time=start_time, end_time=end_time,
-                                  size=1000)
-            return len(results)
-        else:
+        if language != 'eql':
             return self.client.count(body=formatted_dsl, index=index_str, q=lucene_query, allow_no_indices=True,
                                      ignore_unavailable=True)['count']
+        results = self.search(query=query, language=language, index=index, start_time=start_time, end_time=end_time,
+                              size=1000)
+        return len(results)
 
     def count_from_rule(self, *rules, start_time=None, end_time='now'):
         """Get a count of documents from elasticsearch using a rule."""

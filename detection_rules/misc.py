@@ -4,6 +4,7 @@
 # 2.0.
 
 """Misc support."""
+
 import os
 import re
 import time
@@ -41,12 +42,14 @@ or more contributor license agreements. Licensed under the Elastic License
 """.strip()
 
 LICENSE_LINES = LICENSE_HEADER.splitlines()
-PYTHON_LICENSE = "\n".join("# " + line for line in LICENSE_LINES)
+PYTHON_LICENSE = "\n".join(f"# {line}" for line in LICENSE_LINES)
 JS_LICENSE = """
 /*
 {}
  */
-""".strip().format("\n".join(' * ' + line for line in LICENSE_LINES))
+""".strip().format(
+    "\n".join(f' * {line}' for line in LICENSE_LINES)
+)
 
 
 class ClientError(click.ClickException):
@@ -66,14 +69,16 @@ class ClientError(click.ClickException):
 
 def client_error(message, exc: Exception = None, debug=None, ctx: click.Context = None, file=None,
                  err=None) -> NoReturn:
-    config_debug = True if ctx and ctx.ensure_object(dict) and ctx.obj.get('debug') is True else False
+    config_debug = bool(
+        ctx and ctx.ensure_object(dict) and ctx.obj.get('debug') is True
+    )
+
     debug = debug if debug is not None else config_debug
 
-    if debug:
-        click.echo(click.style('DEBUG: ', fg='yellow') + message, err=err, file=file)
-        raise
-    else:
+    if not debug:
         raise ClientError(message, original_error=exc)
+    click.echo(click.style('DEBUG: ', fg='yellow') + message, err=err, file=file)
+    raise
 
 
 def nested_get(_dict, dot_key, default=None):
@@ -97,7 +102,7 @@ def nested_set(_dict, dot_key, value):
     if isinstance(_dict, dict):
         _dict[keys[-1]] = value
     else:
-        raise ValueError('dict cannot set a value to a non-dict for {}'.format(dot_key))
+        raise ValueError(f'dict cannot set a value to a non-dict for {dot_key}')
 
 
 def schema_prompt(name, value=None, required=False, **options):
@@ -112,7 +117,7 @@ def schema_prompt(name, value=None, required=False, **options):
     max_items = options.get('max_items', 9999)
 
     default = options.get('default')
-    if default is not None and str(default).lower() in ('true', 'false'):
+    if default is not None and str(default).lower() in {'true', 'false'}:
         default = str(default).lower()
 
     if 'date' in name:
@@ -128,7 +133,10 @@ def schema_prompt(name, value=None, required=False, **options):
         if field_type in ('number', 'integer') and not str(_val).isdigit():
             print('Number expected but got: {}'.format(_val))
             return False
-        if pattern and (not re.match(pattern, _val) or len(re.match(pattern, _val).group(0)) != len(_val)):
+        if pattern and (
+            not re.match(pattern, _val)
+            or len(re.match(pattern, _val)[0]) != len(_val)
+        ):
             print('{} did not match pattern: {}!'.format(_val, pattern))
             return False
         if enum and _val not in enum:
@@ -146,8 +154,8 @@ def schema_prompt(name, value=None, required=False, **options):
         return True
 
     def _convert_type(_val):
-        if field_type == 'boolean' and not type(_val) == bool:
-            _val = True if _val.lower() == 'true' else False
+        if field_type == 'boolean' and type(_val) != bool:
+            _val = _val.lower() == 'true'
         return int(_val) if field_type in ('number', 'integer') else _val
 
     prompt = '{name}{default}{required}{multi}'.format(
@@ -386,10 +394,11 @@ def add_client(*client_type, add_to_ctx=True, add_func_arg=True):
                 # for nested ctx invocation, no need to re-auth if an existing client is already passed
                 elasticsearch_client: Elasticsearch = kwargs.get('elasticsearch_client')
                 try:
-                    if elasticsearch_client and isinstance(elasticsearch_client, Elasticsearch) and \
-                            elasticsearch_client.info():
-                        pass
-                    else:
+                    if (
+                        not elasticsearch_client
+                        or not isinstance(elasticsearch_client, Elasticsearch)
+                        or not elasticsearch_client.info()
+                    ):
                         elasticsearch_client = get_elasticsearch_client(use_ssl=True, **es_client_args)
                 except ElasticsearchException:
                     elasticsearch_client = get_elasticsearch_client(use_ssl=True, **es_client_args)
@@ -404,9 +413,11 @@ def add_client(*client_type, add_to_ctx=True, add_func_arg=True):
                 kibana_client: Kibana = kwargs.get('kibana_client')
                 try:
                     with kibana_client:
-                        if kibana_client and isinstance(kibana_client, Kibana) and kibana_client.version:
-                            pass
-                        else:
+                        if (
+                            not kibana_client
+                            or not isinstance(kibana_client, Kibana)
+                            or not kibana_client.version
+                        ):
                             kibana_client = get_kibana_client(**kibana_client_args)
                 except (requests.HTTPError, AttributeError):
                     kibana_client = get_kibana_client(**kibana_client_args)

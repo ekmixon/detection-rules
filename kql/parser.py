@@ -105,9 +105,11 @@ class BaseKqlParser(Interpreter):
         self.star_fields = []
 
         if schema:
-            for field, field_type in schema.items():
-                if "*" in field:
-                    self.star_fields.append(wildcard2regex(field))
+            self.star_fields.extend(
+                wildcard2regex(field)
+                for field, field_type in schema.items()
+                if "*" in field
+            )
 
     def assert_lower_token(self, *tokens):
         for token in tokens:
@@ -126,14 +128,20 @@ class BaseKqlParser(Interpreter):
         before = self.lines[:line_number + 1][-3:]
         after = self.lines[line_number + 1:][:3]
 
-        source = '\n'.join(b for b in before)
-        trailer = '\n'.join(a for a in after)
+        source = '\n'.join(before)
+        trailer = '\n'.join(after)
 
         # Determine if the error message can easily look like this
         #                                                     ^^^^
-        if width is None and not end and node.line == node.end_line:
-            if not self.NON_SPACE_WS.search(self.lines[line_number][column:node.end_column]):
-                width = node.end_column - node.column
+        if (
+            width is None
+            and not end
+            and node.line == node.end_line
+            and not self.NON_SPACE_WS.search(
+                self.lines[line_number][column : node.end_column]
+            )
+        ):
+            width = node.end_column - node.column
 
         if width is None:
             width = 1
@@ -141,7 +149,7 @@ class BaseKqlParser(Interpreter):
         return cls(message, line_number, column, source, width=width, trailer=trailer)
 
     def __default__(self, tree):
-        raise NotImplementedError("Unable to visit tree {} of type: {}".format(tree, tree.data))
+        raise NotImplementedError(f"Unable to visit tree {tree} of type: {tree.data}")
 
     def unescape_literal(self, token):  # type: (Token) -> (int|float|str|bool)
         if token.type == "QUOTED_STRING":
@@ -173,16 +181,14 @@ class BaseKqlParser(Interpreter):
 
         if self.mapping_schema is not None:
             regex = wildcard2regex(wildcard_dotted_path)
-            field_types = set()
-
-            for field, field_type in self.mapping_schema.items():
-                if regex.fullmatch(field) is not None:
-                    field_types.add(field_type)
-
-            if len(field_types) == 0:
+            if field_types := {
+                field_type
+                for field, field_type in self.mapping_schema.items()
+                if regex.fullmatch(field) is not None
+            }:
+                return field_types
+            else:
                 raise self.error(lark_tree, "Unknown field")
-
-            return field_types
 
     @staticmethod
     def get_literal_type(literal_value):
@@ -198,7 +204,9 @@ class BaseKqlParser(Interpreter):
         elif literal_value is None:
             return "null"
         else:
-            raise NotImplementedError("Unknown literal type: {}".format(type(literal_value).__name__))
+            raise NotImplementedError(
+                f"Unknown literal type: {type(literal_value).__name__}"
+            )
 
     def convert_value(self, field_name, python_value, value_tree):
         field_type = None
@@ -218,10 +226,8 @@ class BaseKqlParser(Interpreter):
             if field_type_family in STRING_FIELDS:
                 return eql.utils.to_unicode(python_value)
             elif field_type_family in ("float", "integer"):
-                try:
+                with contextlib.suppress(ValueError):
                     return float(python_value) if field_type_family == "float" else int(python_value)
-                except ValueError:
-                    pass
             elif field_type_family == "ip" and value_type == "keyword":
                 if "::" in python_value or self.ip_regex.match(python_value) is not None:
                     return python_value
@@ -245,19 +251,17 @@ class BaseKqlParser(Interpreter):
             return None
         else:
             for numeric in (int, float):
-                try:
+                with contextlib.suppress(ValueError):
                     return numeric(text)
-                except ValueError:
-                    pass
-
         text = cls.unquoted_regex.sub(lambda r: cls.unquoted_escapes[r.group()], text)
         return text
 
     @classmethod
     def convert_quoted_string(cls, text):
         inner_text = text[1:-1]
-        unescaped = cls.quoted_regex.sub(lambda r: cls.quoted_escapes[r.group()], inner_text)
-        return unescaped
+        return cls.quoted_regex.sub(
+            lambda r: cls.quoted_escapes[r.group()], inner_text
+        )
 
 
 class KqlParser(BaseKqlParser):

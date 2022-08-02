@@ -50,8 +50,7 @@ class RuleMeta(MarshmallowDataclassMixin):
 
     def get_validation_stack_versions(self) -> Dict[str, dict]:
         """Get a dict of beats and ecs versions per stack release."""
-        stack_versions = get_stack_schemas(self.min_stack_version or MIN_FLEET_PACKAGE_VERSION)
-        return stack_versions
+        return get_stack_schemas(self.min_stack_version or MIN_FLEET_PACKAGE_VERSION)
 
 
 @dataclass(frozen=True)
@@ -285,14 +284,13 @@ class EQLRuleData(QueryRuleData):
         now = len("now")
         min_length = now + len('+5m')
 
-        if lookback.startswith("now") and len(lookback) >= min_length:
-            lookback = lookback[len("now"):]
-            sign = lookback[0]  # + or -
-            span = lookback[1:]
-            amount = self.convert_time_span(span)
-            return amount * (-1 if sign == "-" else 1)
-        else:
+        if not lookback.startswith("now") or len(lookback) < min_length:
             return self.convert_time_span(lookback)
+        lookback = lookback[len("now"):]
+        sign = lookback[0]  # + or -
+        span = lookback[1:]
+        amount = self.convert_time_span(span)
+        return amount * (-1 if sign == "-" else 1)
 
     @cached_property
     def max_span(self) -> Optional[int]:
@@ -307,10 +305,7 @@ class EQLRuleData(QueryRuleData):
         to = self.convert_relative_delta(self.to) if self.to else 0
         from_ = self.convert_relative_delta(self.from_ or "now-6m")
 
-        if not (to or from_):
-            return 'unknown'
-        else:
-            return to - from_
+        return to - from_ if (to or from_) else 'unknown'
 
     @cached_property
     def interval_ratio(self) -> Optional[float]:
@@ -389,9 +384,7 @@ class BaseRuleContents(ABC):
 
     def lock_info(self, bump=True) -> dict:
         version = self.autobumped_version if bump else (self.latest_version or 1)
-        contents = {"rule_name": self.name, "sha256": self.sha256(), "version": version}
-
-        return contents
+        return {"rule_name": self.name, "sha256": self.sha256(), "version": version}
 
     @property
     def is_dirty(self) -> Optional[bool]:
@@ -506,8 +499,8 @@ class TOMLRuleContents(BaseRuleContents, MarshmallowDataclassMixin):
         return nested_normalize(dict_obj)
 
     def flattened_dict(self) -> dict:
-        flattened = dict()
-        flattened.update(self.data.to_dict())
+        flattened = {}
+        flattened |= self.data.to_dict()
         flattened.update(self.metadata.to_dict())
         return flattened
 
@@ -635,7 +628,13 @@ def get_unique_query_fields(rule: TOMLRule) -> List[str]:
         with eql.parser.elasticsearch_syntax, eql.parser.ignore_missing_functions:
             parsed = kql.parse(query) if language == 'kuery' else eql.parse_query(query)
 
-        return sorted(set(str(f) for f in parsed if isinstance(f, (eql.ast.Field, kql.ast.Field))))
+        return sorted(
+            {
+                str(f)
+                for f in parsed
+                if isinstance(f, (eql.ast.Field, kql.ast.Field))
+            }
+        )
 
 
 # avoid a circular import

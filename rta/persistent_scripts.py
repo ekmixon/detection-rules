@@ -27,7 +27,7 @@ def main():
 
     # Remove any existing profiles
     user_profile = os.environ['USERPROFILE']
-    log_file = os.path.join(user_profile, NAME + ".log")
+    log_file = os.path.join(user_profile, f"{NAME}.log")
 
     # Remove log file if exists
     common.remove_file(log_file)

@@ -25,7 +25,7 @@ def main():
     }
     hosts_file = hosts_files[common.CURRENT_OS]
 
-    backup = os.path.abspath(hosts_file + '_backup')
+    backup = os.path.abspath(f'{hosts_file}_backup')
     common.log("Backing up original 'hosts' file.")
     common.copy_file(hosts_file, backup)
 

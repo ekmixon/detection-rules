@@ -21,19 +21,20 @@ def main(remote_host=None):
 
     common.enable_logon_auditing(remote_host)
 
-    common.log('Attempting to trigger a remote logon on {}'.format(remote_host))
+    common.log(f'Attempting to trigger a remote logon on {remote_host}')
 
     commands = [
-        'Invoke-WmiMethod -ComputerName {} -Class Win32_process -Name create -ArgumentList {}'.format(remote_host, c)
+        f'Invoke-WmiMethod -ComputerName {remote_host} -Class Win32_process -Name create -ArgumentList {c}'
         for c in ('ipconfig', 'netstat')
     ]
+
 
     # trigger twice
     for command in commands:
         common.execute(['powershell', '-c', command])
 
     # this should not trigger an alert
-    common.execute(['net.exe', 'time', '\\\\{}'.format(remote_host)])
+    common.execute(['net.exe', 'time', f'\\\\{remote_host}'])
 
 
 if __name__ == "__main__":

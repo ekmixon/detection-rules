@@ -37,7 +37,7 @@ def main():
         [common.CMD_PATH, "/c", "echo hello world"],
     ]
 
-    common.log("Running commands from recycle bin in %s" % target_dir)
+    common.log(f"Running commands from recycle bin in {target_dir}")
     for command in commands:  # type: list[str]
         source_path = command[0]
         arguments = command[1:]

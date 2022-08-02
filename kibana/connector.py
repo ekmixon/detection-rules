@@ -40,7 +40,7 @@ class Kibana(object):
         if self.cloud_id:
             self.cluster_name, cloud_info = self.cloud_id.split(":")
             self.domain, self.es_uuid, self.kibana_uuid = \
-                base64.b64decode(cloud_info.encode("utf-8")).decode("utf-8").split("$")
+                    base64.b64decode(cloud_info.encode("utf-8")).decode("utf-8").split("$")
 
             kibana_url_from_cloud = f"https://{self.kibana_uuid}.{self.domain}:9243"
             if self.kibana_url and self.kibana_url != kibana_url_from_cloud:
@@ -72,18 +72,15 @@ class Kibana(object):
         # If a space is defined update the URL accordingly
         uri = uri.lstrip('/')
         if self.space:
-            uri = "s/{}/{}".format(self.space, uri)
+            uri = f"s/{self.space}/{uri}"
         return f"{self.kibana_url}/{uri}"
 
     def request(self, method, uri, params=None, data=None, error=True, verbose=True, raw=False, **kwargs):
         """Perform a RESTful HTTP request with JSON responses."""
         params = params or {}
         url = self.url(uri)
-        params = {k: v for k, v in params.items()}
-        body = None
-        if data is not None:
-            body = json.dumps(data)
-
+        params = dict(params.items())
+        body = json.dumps(data) if data is not None else None
         response = self.session.request(method, url, params=params, data=body, **kwargs)
         if error:
             try:
@@ -199,11 +196,10 @@ class Kibana(object):
     @classmethod
     def current(cls) -> 'Kibana':
         """Get the currently used Kibana stack."""
-        stack = getattr(_context, "stack", [])
-        if len(stack) == 0:
+        if stack := getattr(_context, "stack", []):
+            return stack[-1]
+        else:
             raise RuntimeError("No Kibana connector in scope!")
-
-        return stack[-1]
 
     def verify_space(self, space):
         """Verify a space is valid."""

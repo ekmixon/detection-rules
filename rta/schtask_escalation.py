@@ -27,7 +27,7 @@ def main():
 
     task_name = 'test-task-rta'
     file_path = os.path.abspath('task.log')
-    command = "cmd.exe /c whoami.exe > " + file_path
+    command = f"cmd.exe /c whoami.exe > {file_path}"
 
     # Delete the task if it exists
     code, output = schtasks('/query', '/tn', task_name)

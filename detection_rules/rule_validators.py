@@ -23,7 +23,7 @@ class KQLValidator(QueryValidator):
 
     @property
     def unique_fields(self) -> List[str]:
-        return list(set(str(f) for f in self.ast if isinstance(f, kql.ast.Field)))
+        return list({str(f) for f in self.ast if isinstance(f, kql.ast.Field)})
 
     def to_eql(self) -> eql.ast.Expression:
         return kql.to_eql(self.query)
@@ -69,7 +69,7 @@ class EQLValidator(QueryValidator):
 
     @property
     def unique_fields(self) -> List[str]:
-        return list(set(str(f) for f in self.ast if isinstance(f, eql.ast.Field)))
+        return list({str(f) for f in self.ast if isinstance(f, eql.ast.Field)})
 
     def validate(self, data: 'QueryRuleData', meta: RuleMeta) -> None:
         """Validate an EQL query while checking TOMLRule."""

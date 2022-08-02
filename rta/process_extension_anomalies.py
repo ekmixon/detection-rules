@@ -27,7 +27,7 @@ def main():
     ]
 
     for path in anomalies:
-        common.log("Masquerading python as %s" % path)
+        common.log(f"Masquerading python as {path}")
         common.copy_file(MY_APP, path)
         common.execute([path])
         common.remove_file(path)

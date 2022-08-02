@@ -19,11 +19,11 @@ def main():
     cmd_path = "c:\\windows\\system32\\cmd.exe"
 
     for office_app in ["winword.exe", "excel.exe", "powerpnt.exe", "outlook.exe"]:
-        common.log("Emulating office application %s" % office_app)
+        common.log(f"Emulating office application {office_app}")
         office_path = os.path.abspath(office_app)
         common.copy_file(cmd_path, office_path)
 
-        bad_path = os.path.abspath("bad-{}-{}.exe".format(hash(office_app), os.getpid()))
+        bad_path = os.path.abspath(f"bad-{hash(office_app)}-{os.getpid()}.exe")
         common.execute([office_path, '/c', 'copy', cmd_path, bad_path])
 
         time.sleep(1)

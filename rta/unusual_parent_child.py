@@ -17,7 +17,10 @@ from . import common
 
 @common.requires_os(common.WINDOWS)
 def main():
-    common.log("Running Windows processes with an unexpected parent of %s" % os.path.basename(sys.executable))
+    common.log(
+        f"Running Windows processes with an unexpected parent of {os.path.basename(sys.executable)}"
+    )
+
     process_names = [
         # "C:\\Windows\\System32\\smss.exe", BSOD (avoid this)
         # "C:\\Windows\\System32\\csrss.exe", BSOD (avoid this)
@@ -35,7 +38,7 @@ def main():
         if os.path.exists(process):
             common.execute([process], timeout=2, kill=True)
         else:
-            common.log("Skipping %s" % process, "-")
+            common.log(f"Skipping {process}", "-")
 
 
 if __name__ == "__main__":

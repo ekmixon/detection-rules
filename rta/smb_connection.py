@@ -21,14 +21,14 @@ def main(ip=None):
     ip = ip or common.get_ip()
 
     # connect to rpc
-    common.log("Connecting to {}:{}".format(ip, SMB_PORT))
+    common.log(f"Connecting to {ip}:{SMB_PORT}")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((ip, 445))
     common.log("Sending HELLO")
     s.send(b"HELLO!")
     common.log("Shutting down the connection...")
     s.close()
-    common.log("Closed connection to {}:{}".format(ip, SMB_PORT))
+    common.log(f"Closed connection to {ip}:{SMB_PORT}")
 
 
 if __name__ == "__main__":

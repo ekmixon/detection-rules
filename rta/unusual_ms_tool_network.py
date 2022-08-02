@@ -15,11 +15,7 @@ import sys
 
 from . import common
 
-if sys.version_info > (3,):
-    urlliblib = "urllib.request"
-else:
-    urlliblib = "urllib"
-
+urlliblib = "urllib.request" if sys.version_info > (3,) else "urllib"
 process_names = [
     "bginfo.exe",
     "msdt.exe",
@@ -37,7 +33,7 @@ process_names = [
 
 def http_from_process(name, ip, port):
     path = os.path.join(common.BASE_DIR, name)
-    common.log("Making HTTP GET from %s" % path)
+    common.log(f"Making HTTP GET from {path}")
     shutil.copy(sys.executable, path)
     common.execute([path, "-c", "from %s import urlopen ; urlopen('http://%s:%d')" % (urlliblib, ip, port)])
     common.remove_file(path)

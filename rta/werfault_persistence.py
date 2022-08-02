@@ -27,7 +27,7 @@ def main():
                 MY_APP]
 
     for command in commands:
-        common.log("Setting WerFault reg key to {}".format(command))
+        common.log(f"Setting WerFault reg key to {command}")
         common.execute(["powershell", "-c", "New-ItemProperty", "-Path", reg_key,
                         "-Name", reg_name, "-Value", command], wait=False)
         time.sleep(1)

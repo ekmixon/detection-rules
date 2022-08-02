@@ -23,17 +23,19 @@ def boolean(**kwargs):
         for child in children:
             if list(child) == ["bool"]:
                 for child_type, child_terms in child["bool"].items():
-                    if child_type in ("must", "filter"):
+                    if (
+                        child_type not in ("must", "filter")
+                        and child_type == "should"
+                        and "should" not in dsl
+                        or child_type in ("must", "filter")
+                        or child_type != "should"
+                        and child_type == "must_not"
+                    ):
                         dsl[child_type].extend(child_terms)
                     elif child_type == "should":
-                        if "should" not in dsl:
-                            dsl[child_type].extend(child_terms)
-                        else:
-                            dsl[boolean_type].append(boolean(should=child_terms))
-                    elif child_type == "must_not":
-                        dsl[child_type].extend(child_terms)
+                        dsl[boolean_type].append(boolean(should=child_terms))
                     elif child_type != "minimum_should_match":
-                        raise ValueError("Unknown term {}: {}".format(child_type, child_terms))
+                        raise ValueError(f"Unknown term {child_type}: {child_terms}")
             else:
                 dsl[boolean_type].append(child)
 
@@ -67,7 +69,7 @@ def boolean(**kwargs):
 class ToDsl(Walker):
 
     def _walk_default(self, node, *args, **kwargs):
-        raise KqlCompileError("Unable to convert {}".format(node))
+        raise KqlCompileError(f"Unable to convert {node}")
 
     def _walk_exists(self, _):
         return lambda field: {"exists": {"field": field}}

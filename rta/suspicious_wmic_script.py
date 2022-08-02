@@ -34,7 +34,7 @@ def main():
         f.write(xsl_content)
 
     # Many variations on this command. For example, -format:, /  format : , etc
-    common.execute(["wmic.exe", "os", "get", "/format:" + xsl_file])
+    common.execute(["wmic.exe", "os", "get", f"/format:{xsl_file}"])
 
     os.remove(xsl_file)
 

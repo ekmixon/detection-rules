@@ -19,7 +19,7 @@ from . import common
 def main():
     common.log("Running Windows BitsAdmin to Download")
     server, ip, port = common.serve_web()
-    url = "http://" + ip + ":" + str(port) + "/bin/myapp.exe"
+    url = f"http://{ip}:{str(port)}/bin/myapp.exe"
     dest_path = os.path.abspath("myapp-test.exe")
     fake_word = os.path.abspath("winword.exe")
 

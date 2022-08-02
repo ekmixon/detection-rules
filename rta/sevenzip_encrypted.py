@@ -18,7 +18,7 @@ SEVENZIP = common.get_path("bin", "7za.exe")
 
 
 def create_exfil(path=os.path.abspath("secret_stuff.txt")):
-    common.log("Writing dummy exfil to %s" % path)
+    common.log(f"Writing dummy exfil to {path}")
     with open(path, 'wb') as f:
         f.write(base64.b64encode(b"This is really secret stuff\n" * 100))
     return path
@@ -37,18 +37,22 @@ def main(password="s0l33t"):
 
     for ext in exts:
         # Write archive for each type
-        out_file = os.path.abspath("out." + ext)
-        common.execute([svnz2, "a", out_file, "-p" + password, exfil], mute=True)
+        out_file = os.path.abspath(f"out.{ext}")
+        common.execute([svnz2, "a", out_file, f"-p{password}", exfil], mute=True)
         common.remove_file(out_file)
 
         # Write archive for each type with -t flag
         if ext == "bz2":
             continue
 
-        common.execute([svnz2, "a", out_jpg, "-p" + password, "-t" + ext, exfil], mute=True)
+        common.execute(
+            [svnz2, "a", out_jpg, f"-p{password}", f"-t{ext}", exfil],
+            mute=True,
+        )
+
         common.remove_file(out_jpg)
 
-    common.execute([SEVENZIP, "a", out_jpg, "-p" + password, exfil], mute=True)
+    common.execute([SEVENZIP, "a", out_jpg, f"-p{password}", exfil], mute=True)
     common.remove_files(exfil, svnz2, out_jpg)
 
 

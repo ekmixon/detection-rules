@@ -23,7 +23,7 @@ def main():
     common.clear_web_cache()
 
     new_callback = "http://%s:%d" % (ip, port)
-    common.log("Updating the callback to %s" % new_callback)
+    common.log(f"Updating the callback to {new_callback}")
     common.patch_regex(HTA_FILE, common.CALLBACK_REGEX, new_callback)
 
     mshta = 'mshta.exe'

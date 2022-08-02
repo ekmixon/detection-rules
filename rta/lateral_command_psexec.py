@@ -17,7 +17,7 @@ from . import common
 @common.dependencies(common.PS_EXEC)
 def main(remote_host=None):
     remote_host = remote_host or common.get_ip()
-    common.log("Performing PsExec to %s" % remote_host)
+    common.log(f"Performing PsExec to {remote_host}")
     common.execute([common.PS_EXEC, "\\\\%s" % remote_host, "-accepteula", "ipconfig"])
 
 

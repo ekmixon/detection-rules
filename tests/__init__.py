@@ -39,7 +39,7 @@ def get_data_files_list(*folder, ext='jsonl', recursive=False):
     if recursive:
         data_dir.append('**')
 
-    data_dir.append('*.{}'.format(ext))
+    data_dir.append(f'*.{ext}')
     return glob.glob(os.path.join(*data_dir), recursive=recursive)
 
 

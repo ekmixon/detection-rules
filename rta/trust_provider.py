@@ -17,10 +17,10 @@ def set_final_policy(dll_path, function_name):
     winreg = common.get_winreg()
     hkey = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, FINAL_POLICY_KEY)
 
-    common.log("Setting dll path: %s" % dll_path)
+    common.log(f"Setting dll path: {dll_path}")
     winreg.SetValueEx(hkey, "$DLL", 0, winreg.REG_SZ, dll_path)
 
-    common.log("Setting function name: %s" % function_name)
+    common.log(f"Setting function name: {function_name}")
     winreg.SetValueEx(hkey, "$Function", 0, winreg.REG_SZ, function_name)
 
 

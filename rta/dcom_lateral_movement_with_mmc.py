@@ -18,9 +18,9 @@ def main(remote_host=None):
     remote_host = remote_host or common.get_ip()
     common.log("DCOM Lateral Movement with MMC")
 
-    common.log("Attempting to move laterally to {}".format(remote_host))
+    common.log(f"Attempting to move laterally to {remote_host}")
     remote_host = common.get_ipv4_address(remote_host)
-    common.log("Using IP address {}".format(remote_host))
+    common.log(f"Using IP address {remote_host}")
 
     # Prepare PowerShell command for DCOM lateral movement
 

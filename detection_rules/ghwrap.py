@@ -42,9 +42,12 @@ def get_gh_release(repo: Repository, release_name: Optional[str] = None, tag_nam
 
     releases = repo.get_releases()
     for release in releases:
-        if release_name and release_name == release.title:
-            return release
-        elif tag_name and tag_name == release.tag_name:
+        if (
+            release_name
+            and release_name == release.title
+            or tag_name
+            and tag_name == release.tag_name
+        ):
             return release
 
 
@@ -213,9 +216,7 @@ class ManifestManager:
 
         release_metadata = self._parse_release_metadata()
         release_metadata.update(assets=assets)
-        release_manifest = ReleaseManifest(**release_metadata)
-
-        return release_manifest
+        return ReleaseManifest(**release_metadata)
 
     def _parse_release_metadata(self) -> dict:
         """Parse relevant info from GitHub metadata for release manifest."""
@@ -259,12 +260,18 @@ class ManifestManager:
         missing = set()
         for release in repo.get_releases():
             name = release.tag_name
-            asset = next((a for a in release.get_assets() if a.name == f'manifest-{name}.json'), None)
-            if not asset:
-                missing.add(name)
-            else:
+            if asset := next(
+                (
+                    a
+                    for a in release.get_assets()
+                    if a.name == f'manifest-{name}.json'
+                ),
+                None,
+            ):
                 consolidated[name] = load_json_gh_asset(asset.browser_download_url)
 
+            else:
+                missing.add(name)
         return consolidated, list(missing)
 
     @classmethod

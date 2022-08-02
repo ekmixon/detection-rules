@@ -39,19 +39,19 @@ class TestMappings(BaseRuleTest):
                 rta_file = mapping['rta_name']
 
                 # ensure sources is defined and not empty; schema allows it to not be set since 'pending' bypasses
-                self.assertTrue(sources, 'No sources defined for: {} - {} '.format(rule.id, rule.name))
-                msg = 'Expected TP results did not match for: {} - {}'.format(rule.id, rule.name)
+                self.assertTrue(sources, f'No sources defined for: {rule.id} - {rule.name} ')
+                msg = f'Expected TP results did not match for: {rule.id} - {rule.name}'
 
                 data_files = [get_data_files('true_positives', rta_file).get(s) for s in sources]
                 data_file = combine_sources(*data_files)
                 results = self.evaluate(data_file, rule, expected, msg)
 
-                ecs_versions = set([r.get('ecs', {}).get('version') for r in results])
+                ecs_versions = {r.get('ecs', {}).get('version') for r in results}
                 rule_ecs = set(rule.metadata.get('ecs_version').copy())
 
                 if not ecs_versions & rule_ecs:
-                    msg = '{} - {} ecs_versions ({}) not in source data versions ({})'.format(
-                        rule.id, rule.name, ', '.join(rule_ecs), ', '.join(ecs_versions))
+                    msg = f"{rule.id} - {rule.name} ecs_versions ({', '.join(rule_ecs)}) not in source data versions ({', '.join(ecs_versions)})"
+
                     mismatched_ecs.append(msg)
 
         if mismatched_ecs:
@@ -64,5 +64,5 @@ class TestMappings(BaseRuleTest):
         for rule in self.production_rules:
             if rule.contents.data.type == "query" and rule.contents.data.language == "kuery":
                 for fp_name, merged_data in get_fp_data_files().items():
-                    msg = 'Unexpected FP match for: {} - {}, against: {}'.format(rule.id, rule.name, fp_name)
+                    msg = f'Unexpected FP match for: {rule.id} - {rule.name}, against: {fp_name}'
                     self.evaluate(copy.deepcopy(merged_data), rule, 0, msg)

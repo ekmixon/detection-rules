@@ -141,7 +141,7 @@ def mass_update(ctx, query, metadata, language, field):
     """Update multiple rules based on eql results."""
     rules = RuleCollection().default()
     results = ctx.invoke(search_rules, query=query, language=language, verbose=False)
-    matching_ids = set(r["rule_id"] for r in results)
+    matching_ids = {r["rule_id"] for r in results}
     rules = rules.filter(lambda r: r.id in matching_ids)
 
     for rule in rules:
@@ -275,7 +275,7 @@ def search_rules(query, columns, language, count, verbose=True, rules: Dict[str,
 
     for file_name, rule in rules.items():
         flat: dict = {"file": os.path.relpath(file_name)}
-        flat.update(rule.contents.to_dict())
+        flat |= rule.contents.to_dict()
         flat.update(flat["metadata"])
         flat.update(flat["rule"])
 
@@ -362,11 +362,11 @@ def create_dnstwist_index(ctx: click.Context, input_file: click.Path):
     domain = original_domain.split('.')[0]
     domain_index = f'dnstwist-{domain}'
     # If index already exists, prompt user to confirm if they want to overwrite
-    if es_client.indices.exists(index=domain_index):
-        if click.confirm(
-                f"dnstwist index: {domain_index} already exists for {original_domain}. Do you want to overwrite?",
-                abort=True):
-            es_client.indices.delete(index=domain_index)
+    if es_client.indices.exists(index=domain_index) and click.confirm(
+        f"dnstwist index: {domain_index} already exists for {original_domain}. Do you want to overwrite?",
+        abort=True,
+    ):
+        es_client.indices.delete(index=domain_index)
 
     fields = [
         "dns-a",

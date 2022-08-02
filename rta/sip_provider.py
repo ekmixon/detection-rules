@@ -20,18 +20,18 @@ def register_sip_provider(dll_path, verify_function, getsig_function):
     winreg = common.get_winreg()
     hkey = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, VERIFY_DLL_KEY)
 
-    common.log("Setting verify dll path: %s" % dll_path)
+    common.log(f"Setting verify dll path: {dll_path}")
     winreg.SetValueEx(hkey, "Dll", 0, winreg.REG_SZ, dll_path)
 
-    common.log("Setting verify function name: %s" % verify_function)
+    common.log(f"Setting verify function name: {verify_function}")
     winreg.SetValueEx(hkey, "FuncName", 0, winreg.REG_SZ, verify_function)
 
     hkey = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, GETSIG_KEY)
 
-    common.log("Setting getsig dll path: %s" % dll_path)
+    common.log(f"Setting getsig dll path: {dll_path}")
     winreg.SetValueEx(hkey, "Dll", 0, winreg.REG_SZ, dll_path)
 
-    common.log("Setting getsig function name: %s" % getsig_function)
+    common.log(f"Setting getsig function name: {getsig_function}")
     winreg.SetValueEx(hkey, "FuncName", 0, winreg.REG_SZ, getsig_function)
 
 

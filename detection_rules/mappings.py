@@ -68,7 +68,7 @@ class RtaMappings(object):
         for rta_name in rta_list:
             # rip off the extension and add .py
             rta_name, _ = os.path.splitext(os.path.basename(rta_name))
-            rta_path = os.path.abspath(os.path.join(RTA_DIR, rta_name + ".py"))
+            rta_path = os.path.abspath(os.path.join(RTA_DIR, f"{rta_name}.py"))
             if os.path.exists(rta_path):
                 rta_files.add(rta_path)
 

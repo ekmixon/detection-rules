@@ -66,7 +66,7 @@ def build_release(config_file, update_version_lock, release=None, verbose=True):
         config['release'] = release
 
     if verbose:
-        click.echo('[+] Building package {}'.format(config.get('name')))
+        click.echo(f"[+] Building package {config.get('name')}")
 
     package = Package.from_config(config, verbose=verbose)
 
@@ -163,7 +163,7 @@ def prune_staging_area(target_stack_version: str, dry_run: bool):
                 # rule is incompatible, add to the list of reversions to make later
                 reversions.append(change)
 
-    if len(reversions) == 0:
+    if not reversions:
         click.echo("No files restored from staging area")
         return
 
@@ -329,8 +329,6 @@ def kibana_commit(ctx, local_repo: str, github_repo: str, ssh: bool, kibana_dire
 @click.option("--label", multiple=True, help="GitHub labels to add to the PR")
 @click.option("--draft", is_flag=True, help="Open the PR as a draft")
 @click.option("--fork-owner", "-f", help="Owner of forked branch (ex: elastic)")
-# Pending an official GitHub API
-# @click.option("--automerge", is_flag=True, help="Enable auto-merge on the PR")
 @add_git_args
 @click.pass_context
 def kibana_pr(ctx: click.Context, label: Tuple[str, ...], assign: Tuple[str, ...], draft: bool, fork_owner: str,
@@ -360,10 +358,9 @@ def kibana_pr(ctx: click.Context, label: Tuple[str, ...], assign: Tuple[str, ...
     pr = repo.create_pull(title, body, base=kwargs["base_branch"], head=branch_name, maintainer_can_modify=True,
                           draft=draft)
 
-    # labels could also be comma separated
-    label = {lbl for cs_labels in label for lbl in cs_labels.split(",") if lbl}
-
-    if label:
+    if label := {
+        lbl for cs_labels in label for lbl in cs_labels.split(",") if lbl
+    }:
         pr.add_to_labels(*sorted(label))
 
     if assign:

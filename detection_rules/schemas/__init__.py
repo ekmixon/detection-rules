@@ -56,12 +56,13 @@ def get_schema_file(version: Version, rule_type: str) -> dict:
 
 def strip_additional_properties(version: Version, api_contents: dict) -> dict:
     """Remove all fields that the target schema doesn't recognize."""
-    stripped = {}
     target_schema = get_schema_file(version, api_contents["type"])
 
-    for field, field_schema in target_schema["properties"].items():
-        if field in api_contents:
-            stripped[field] = api_contents[field]
+    stripped = {
+        field: api_contents[field]
+        for field, field_schema in target_schema["properties"].items()
+        if field in api_contents
+    }
 
     # finally, validate against the json schema
     jsonschema.validate(stripped, target_schema)
@@ -105,7 +106,7 @@ def downgrade_threat_to_7_10(version: Version, api_contents: dict) -> dict:
         api_contents.pop("threat")
 
         # only add if the array is not empty
-        if len(v710_threats) > 0:
+        if v710_threats:
             api_contents["threat"] = v710_threats
 
     # finally, downgrade any additional properties that were added

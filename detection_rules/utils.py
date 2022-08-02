@@ -54,12 +54,10 @@ marshmallow_schemas = {}
 
 def gopath() -> Optional[str]:
     """Retrieve $GOPATH."""
-    env_path = os.getenv("GOPATH")
-    if env_path:
+    if env_path := os.getenv("GOPATH"):
         return env_path
 
-    go_bin = distutils.spawn.find_executable("go")
-    if go_bin:
+    if go_bin := distutils.spawn.find_executable("go"):
         output = subprocess.check_output([go_bin, "env"], encoding="utf-8").splitlines()
         for line in output:
             if line.startswith("GOPATH="):
@@ -164,7 +162,7 @@ def unzip_and_save(contents, path, member=None, verbose=True):
             archive.extractall(path)
 
         if verbose:
-            name_list = archive.namelist()[member] if not member else archive.namelist()
+            name_list = archive.namelist() if member else archive.namelist()[member]
             print('Saved files to {}: \n\t- {}'.format(path, '\n\t- '.join(name_list)))
 
 
@@ -208,8 +206,7 @@ def combine_sources(*sources):  # type: (list[list]) -> list
 def evaluate(rule, events):
     """Evaluate a query against events."""
     evaluator = kql.get_evaluator(kql.parse(rule.query))
-    filtered = list(filter(evaluator, events))
-    return filtered
+    return list(filter(evaluator, events))
 
 
 def unix_time_to_formatted(timestamp):  # type: (int|str) -> str

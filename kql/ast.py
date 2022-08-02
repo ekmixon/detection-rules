@@ -46,7 +46,7 @@ class KqlNode(BaseNode):
         """Render an EQL node and add parentheses to support orders of operation."""
         rendered = self._render(**kwargs)
         if precedence is not None and self.precedence is not None and self.precedence > precedence:
-            return '({})'.format(rendered)
+            return f'({rendered})'
         return rendered
 
 
@@ -68,7 +68,7 @@ class Value(KqlNode):
         elif is_string(value):
             return String(value)
         else:
-            raise EqlCompileError("Unknown type {} for value {}".format(type(value).__name__, value))
+            raise EqlCompileError(f"Unknown type {type(value).__name__} for value {value}")
 
 
 class Null(Value):
@@ -98,8 +98,8 @@ class String(Value):
         if self.unescapable.match(self.value) is not None:
             return str(self.value)
 
-        regex = r"[{}]".format("".join(re.escape(s) for s in sorted(self.escapes)))
-        return '"{}"'.format(re.sub(regex, lambda r: self.escapes[r.group()], self.value))
+        regex = f'[{"".join((re.escape(s) for s in sorted(self.escapes)))}]'
+        return f'"{re.sub(regex, lambda r: self.escapes[r.group()], self.value)}"'
 
 
 class Wildcard(Value):
@@ -110,8 +110,7 @@ class Wildcard(Value):
         escaped = []
         for char in self.value:
             if char in self.slash_escaped:
-                escaped.append("\\")
-                escaped.append(char)
+                escaped.extend(("\\", char))
             elif char in self.escapes:
                 escaped.append(self.escapes[char])
             else:
@@ -131,7 +130,7 @@ class List(KqlNode):
 
     @property
     def delims(self):
-        return {"items": " {} ".format(self.operator)}
+        return {"items": f" {self.operator} "}
 
     def __eq__(self, other):
         from .optimizer import Optimizer

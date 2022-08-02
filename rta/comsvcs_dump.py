@@ -18,8 +18,17 @@ from . import common
 def main():
     common.log("Memory Dump via Comsvcs")
     pid = os.getpid()
-    common.execute(["powershell.exe", "-c", "rundll32.exe", "C:\\Windows\\System32\\comsvcs.dll",
-                    "MiniDump", "{} dump.bin full".format(pid)])
+    common.execute(
+        [
+            "powershell.exe",
+            "-c",
+            "rundll32.exe",
+            "C:\\Windows\\System32\\comsvcs.dll",
+            "MiniDump",
+            f"{pid} dump.bin full",
+        ]
+    )
+
     time.sleep(1)
     common.remove_file("dump.bin")
 

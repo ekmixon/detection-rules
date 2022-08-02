@@ -25,7 +25,7 @@ def main(username="rta-tester", remote_host=None):
 
     common.enable_logon_auditing(remote_host)
 
-    common.log('Brute forcing login with invalid password against {}'.format(remote_host))
+    common.log(f'Brute forcing login with invalid password against {remote_host}')
     ps_command = '''
     $PW = ConvertTo-SecureString "such-secure-passW0RD!" -AsPlainText -Force
     $CREDS = New-Object System.Management.Automation.PsCredential {username}, $PW
@@ -39,7 +39,7 @@ def main(username="rta-tester", remote_host=None):
 
     time.sleep(1)
 
-    common.log('Password spraying against {}'.format(remote_host))
+    common.log(f'Password spraying against {remote_host}')
 
     # fail 5 times - the first 4 concurrently and wait for the final to complete
     for i in range(5):

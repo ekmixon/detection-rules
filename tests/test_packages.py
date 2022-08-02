@@ -64,8 +64,6 @@ class TestPackages(BaseRuleTest):
         self.maxDiff = None
         rules = RuleCollection.default()
         original_hashes = []
-        post_bump_hashes = []
-
         # test that no rules have versions defined
         for rule in rules:
             self.assertGreaterEqual(rule.contents.autobumped_version, 1, '{} - {}: version is not being set in package')
@@ -78,10 +76,7 @@ class TestPackages(BaseRuleTest):
         for rule in package.rules:
             self.assertGreaterEqual(rule.contents.autobumped_version, 1, '{} - {}: version is not being set in package')
 
-        # test that rules validate with version
-        for rule in package.rules:
-            post_bump_hashes.append(rule.contents.sha256())
-
+        post_bump_hashes = [rule.contents.sha256() for rule in package.rules]
         # test that no hashes changed as a result of the version bumps
         self.assertListEqual(original_hashes, post_bump_hashes, 'Version bumping modified the hash of a rule')
 

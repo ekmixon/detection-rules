@@ -26,8 +26,7 @@ def main(args=None):
         "net localgroup administrators",
         "net user",
         "net user administrator",
-        "net user /domain"
-        "tasklist",
+        "net user /domaintasklist",
         "net view",
         "net view /domain",
         "net view \\\\%s" % common.get_ip(),
@@ -43,12 +42,12 @@ def main(args=None):
         "net accounts",
         "net localgroup",
         "net group",
-        "net group \"Domain Admins\" /domain",
+        'net group \"Domain Admins\" /domain',
         "net share",
         "net config workstation",
+        *slow_commands,
     ]
 
-    commands.extend(slow_commands)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--sample', dest="sample", default=len(commands), type=int,
@@ -59,10 +58,10 @@ def main(args=None):
     if sample < len(commands):
         random.shuffle(commands)
 
-    common.log("Running {} out of {} enumeration commands\n".format(sample, len(commands)))
-    for command in commands[0:sample]:
+    common.log(f"Running {sample} out of {len(commands)} enumeration commands\n")
+    for command in commands[:sample]:
 
-        common.log("About to call {}".format(command))
+        common.log(f"About to call {command}")
         if command in slow_commands:
             common.execute(command, kill=True, timeout=15)
             common.log("[output suppressed]", log_type='-')

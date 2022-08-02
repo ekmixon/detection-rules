@@ -99,10 +99,10 @@ def get_max_version(include_master=False):
     """Get maximum available schema version."""
     versions = get_schema_map().keys()
 
-    if include_master and any([v.startswith('master') for v in versions]):
+    if include_master and any(v.startswith('master') for v in versions):
         return list(Path(ECS_SCHEMAS_DIR).glob('master*'))[0].name
 
-    return str(max([Version(v) for v in versions if not v.startswith('master')]))
+    return str(max(Version(v) for v in versions if not v.startswith('master')))
 
 
 @cached
@@ -143,7 +143,7 @@ def flatten(schema):
     flattened = {}
     for k, v in schema.items():
         if isinstance(v, dict):
-            flattened.update((k + "." + vk, vv) for vk, vv in flatten(v).items())
+            flattened |= ((f"{k}.{vk}", vv) for vk, vv in flatten(v).items())
         else:
             flattened[k] = v
     return flattened
@@ -165,7 +165,7 @@ def flatten_multi_fields(schema):
     for field, info in schema.items():
         converted[field] = info["type"]
         for subfield in info.get("multi_fields", []):
-            converted[field + "." + subfield["name"]] = subfield["type"]
+            converted[f"{field}." + subfield["name"]] = subfield["type"]
 
     return converted
 
@@ -220,7 +220,7 @@ def get_kql_schema(version=None, indexes=None, beat_schema=None) -> dict:
 
 def download_schemas(refresh_master=True, refresh_all=False, verbose=True):
     """Download additional schemas from ecs releases."""
-    existing = [Version(v) for v in get_schema_map()] if not refresh_all else []
+    existing = [] if refresh_all else [Version(v) for v in get_schema_map()]
     url = 'https://api.github.com/repos/elastic/ecs/releases'
     releases = requests.get(url)
 
@@ -238,7 +238,11 @@ def download_schemas(refresh_master=True, refresh_all=False, verbose=True):
             base = name_list[0]
 
             # members = [m for m in name_list if m.startswith('{}{}/'.format(base, 'use-cases')) and m.endswith('.yml')]
-            members = ['{}generated/ecs/ecs_flat.yml'.format(base), '{}generated/ecs/ecs_nested.yml'.format(base)]
+            members = [
+                f'{base}generated/ecs/ecs_flat.yml',
+                f'{base}generated/ecs/ecs_nested.yml',
+            ]
+
             saved = []
 
             for member in members:
@@ -272,7 +276,7 @@ def download_schemas(refresh_master=True, refresh_all=False, verbose=True):
         for m in existing_master:
             shutil.rmtree(m, ignore_errors=True)
 
-        master_dir = "master_{}".format(master_ver)
+        master_dir = f"master_{master_ver}"
         os.makedirs(get_etc_path(ETC_NAME, master_dir), exist_ok=True)
 
         compressed = gzip_compress(json.dumps(master_schema, sort_keys=True, cls=DateTimeEncoder))
@@ -281,4 +285,4 @@ def download_schemas(refresh_master=True, refresh_all=False, verbose=True):
             f.write(compressed)
 
         if verbose:
-            print('Saved files to {}: \n\t- {}'.format(master_dir, 'ecs_flat.json.gz'))
+            print(f'Saved files to {master_dir}: \n\t- ecs_flat.json.gz')

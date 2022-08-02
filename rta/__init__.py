@@ -22,8 +22,11 @@ def get_ttp_list(os_types=None):
         if base_name not in ("common", "main") and not base_name.startswith("_"):
             if os_types:
                 # Import it and skip it if it's not supported
-                importlib.import_module(__name__ + "." + base_name)
-                if not any(base_name in common.OS_MAPPING[os_type] for os_type in os_types):
+                importlib.import_module(f"{__name__}.{base_name}")
+                if all(
+                    base_name not in common.OS_MAPPING[os_type]
+                    for os_type in os_types
+                ):
                     continue
 
             scripts.append(script)

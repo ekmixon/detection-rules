@@ -27,7 +27,7 @@ def main():
     cmd_path = "c:\\windows\\system32\\cmd.exe"
 
     for application in ["outlook.exe", "explorer.exe", "chrome.exe", "firefox.exe"]:
-        common.log("Emulating %s" % application)
+        common.log(f"Emulating {application}")
         app_path = os.path.abspath(application)
         common.copy_file(cmd_path, app_path)
 
@@ -36,12 +36,12 @@ def main():
         common.log("Killing wscript window")
         common.execute('taskkill /IM wscript.exe')
 
-        common.log('Cleanup %s' % app_path)
+        common.log(f'Cleanup {app_path}')
         common.remove_file(app_path)
 
     common.log("Sleep 5 to allow procecsses to finish")
     time.sleep(5)
-    common.log('Cleanup %s' % script_path)
+    common.log(f'Cleanup {script_path}')
     common.remove_file(script_path)
 
 

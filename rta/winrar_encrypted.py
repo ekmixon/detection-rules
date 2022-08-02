@@ -19,7 +19,7 @@ WINRAR = common.get_path("bin", "Rar.exe")
 
 
 def create_exfil(path=os.path.abspath("secret_stuff.txt")):
-    common.log("Writing dummy exfil to %s" % path)
+    common.log(f"Writing dummy exfil to {path}")
     with open(path, 'wb') as f:
         f.write(base64.b64encode(b"This is really secret stuff" * 100))
     return path
@@ -48,13 +48,13 @@ def main(password="s0l33t"):
 
     common.log("Test case 1: Basic use new rar out", log_type="!")
     exfil = create_exfil()
-    common.execute([WINRAR, "a", rar_file, "-hp" + password, exfil])
+    common.execute([WINRAR, "a", rar_file, f"-hp{password}", exfil])
 
     # use case: rar with -hp to add to existing rar file
     # didn't delete rar from previous case
     common.log("Test case 2: Basic use add to existing rar", log_type="!")
     exfil2 = create_exfil("more_stuff.txt")
-    common.execute([WINRAR, "a", rar_file, "-hp" + password, exfil2])
+    common.execute([WINRAR, "a", rar_file, f"-hp{password}", exfil2])
     common.remove_files(exfil2, rar_file)
 
     #  use case: process_name == "*rar*" - yes
@@ -62,7 +62,7 @@ def main(password="s0l33t"):
     #            signature_signer == "*win.rar*" - no
     #            output filename == "*.rar" - no
     common.log("Test case 3: *rar* in process name", log_type="!")
-    common.execute([winrar_bin_modsig, "a", rar_file_jpg, "-hp" + password, exfil])
+    common.execute([winrar_bin_modsig, "a", rar_file_jpg, f"-hp{password}", exfil])
     common.remove_files(rar_file_jpg)
 
     #  use case: process_name == "*rar*" - no
@@ -70,7 +70,7 @@ def main(password="s0l33t"):
     #            signature_signer == "*win.rar*" - yes
     #            output filename == "*.rar" - no
     common.log("Test case 4: Expected WinRar signature", log_type="!")
-    common.execute([winrar_bin_b, "a", rar_file_jpg, "-hp" + password, exfil])
+    common.execute([winrar_bin_b, "a", rar_file_jpg, f"-hp{password}", exfil])
     common.remove_files(rar_file_jpg)
 
     #  use case: process_name == "*rar*" - no
@@ -78,7 +78,7 @@ def main(password="s0l33t"):
     #            signature_signer == "*win.rar*" -no
     #            output filename == "*.rar" - yes
     common.log("Test case 5: *.rar in output filename", log_type="!")
-    common.execute([winrar_bin_modsig_a, "a", rar_file, "-hp" + password, exfil])
+    common.execute([winrar_bin_modsig_a, "a", rar_file, f"-hp{password}", exfil])
 
     common.remove_files(rar_file, winrar_bin_modsig_a, winrar_bin_b, exfil)
 

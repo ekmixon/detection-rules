@@ -47,7 +47,7 @@ def main(target_host=None):
         return common.UNSUPPORTED_RTA
 
     if code == 0:
-        job_id = re.search('ID = (\d+)', output).group(1)
+        job_id = re.search('ID = (\d+)', output)[1]
 
         # Check status and delete
         common.execute(['at.exe', host_str, job_id])

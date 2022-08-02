@@ -49,21 +49,16 @@ class Optimizer(DepthFirstWalker):
     def sort_key(a, b):
         if isinstance(a, Value) and not isinstance(b, Value):
             return -1
-        if not isinstance(a, Value) and isinstance(b, Value):
-            return +1
+        if not isinstance(a, Value):
+            return +1 if isinstance(b, Value) else 0
+        t_a = type(a)
+        t_b = type(b)
 
-        if isinstance(a, Value) and isinstance(b, Value):
-            t_a = type(a)
-            t_b = type(b)
-
-            if t_a == t_b:
-                return (a.value > b.value) - (a.value < b.value)
-            else:
-                return (t_a.__name__ > t_b.__name__) - (t_a.__name__ < t_b.__name__)
-
-        else:
-            # unable to compare
-            return 0
+        return (
+            (a.value > b.value) - (a.value < b.value)
+            if t_a == t_b
+            else (t_a.__name__ > t_b.__name__) - (t_a.__name__ < t_b.__name__)
+        )
 
     def _walk_field_comparison(self, tree):  # type: (FieldComparison) -> KqlNode
         # if there's a single `not`, then pull it out of the expression
@@ -108,9 +103,7 @@ class Optimizer(DepthFirstWalker):
         return cls(flattened) if len(flattened) > 1 else flattened[0]
 
     def _walk_not_value(self, tree):  # type: (NotValue) -> KqlNode
-        if isinstance(tree.value, NotValue):
-            return tree.value.value
-        return tree
+        return tree.value.value if isinstance(tree.value, NotValue) else tree
 
     def _walk_or_values(self, tree):
         return self.flatten_values(tree, AndValues)
@@ -119,9 +112,7 @@ class Optimizer(DepthFirstWalker):
         return self.flatten_values(tree, OrValues)
 
     def _walk_not_expr(self, tree):  # type: (NotExpr) -> KqlNode
-        if isinstance(tree.expr, NotExpr):
-            return tree.expr.expr
-        return tree
+        return tree.expr.expr if isinstance(tree.expr, NotExpr) else tree
 
     def _walk_and_expr(self, tree):  # type: (AndExpr) -> KqlNode
         return self.group_fields(self.flatten(tree), value_cls=AndValues)

@@ -18,8 +18,8 @@ REG = "reg.exe"
 @common.requires_os(common.WINDOWS)
 def main():
     for hive in ["sam", "security", "system"]:
-        filename = os.path.abspath("%s.reg" % hive)
-        common.log("Exporting %s hive to %s" % (hive, filename))
+        filename = os.path.abspath(f"{hive}.reg")
+        common.log(f"Exporting {hive} hive to {filename}")
         common.execute([REG, "save", "hkey_local_machine\\%s" % hive, filename])
         common.remove_file(filename)
 

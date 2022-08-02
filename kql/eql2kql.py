@@ -16,13 +16,13 @@ class Eql2Kql(DepthFirstWalker):
 
     def _walk_default(self, tree, *args, **kwargs):
         if isinstance(tree, eql.ast.EqlNode):
-            raise eql.errors.EqlCompileError("Unable to convert {}".format(tree))
+            raise eql.errors.EqlCompileError(f"Unable to convert {tree}")
         else:
             return tree
 
     def check_field_expression(self, tree):
         if not isinstance(tree, Expression):
-            raise eql.errors.EqlCompileError("Expected expression, but got {}".format(repr(tree)))
+            raise eql.errors.EqlCompileError(f"Expected expression, but got {repr(tree)}")
         return tree
 
     def check_field_expressions(self, trees):
@@ -41,34 +41,41 @@ class Eql2Kql(DepthFirstWalker):
 
     def _walk_is_null(self, node):  # type: (eql.ast.IsNull) -> FieldComparison
         if not isinstance(node.expr, Field):
-            raise eql.errors.EqlCompileError("Unable to compare a non-field [{}] to null".format(node.expr))
+            raise eql.errors.EqlCompileError(
+                f"Unable to compare a non-field [{node.expr}] to null"
+            )
+
 
         return NotExpr(FieldComparison(node.expr, Exists()))
 
     def _walk_is_not_null(self, node):  # type: (eql.ast.IsNotNull) -> Expression
         if not isinstance(node.expr, Field):
-            raise eql.errors.EqlCompileError("Unable to compare a non-field [{}] to null".format(node.expr))
+            raise eql.errors.EqlCompileError(
+                f"Unable to compare a non-field [{node.expr}] to null"
+            )
+
 
         return FieldComparison(node.expr, Exists())
 
     def _walk_field(self, tree):  # type: (eql.ast.Field) -> Field
         if any(eql.utils.is_number(n) for n in tree.path):
-            raise eql.errors.EqlCompileError("Unable to convert array field: {}".format(tree))
+            raise eql.errors.EqlCompileError(f"Unable to convert array field: {tree}")
 
         return Field(tree.render())
 
     def _walk_in_set(self, tree):  # type: (eql.ast.InSet) -> FieldComparison
         if not isinstance(tree.expression, Field) or not all(isinstance(v, Value) for v in tree.container):
-            raise eql.errors.EqlCompileError("Unable to convert `{}`".format(tree.expression, tree))
+            raise eql.errors.EqlCompileError(f"Unable to convert `{tree.expression}`")
 
         return FieldComparison(tree.expression, OrValues(tree.container))
 
     def _walk_function_call(self, tree):  # type: (eql.ast.FunctionCall) -> KqlNode
-        if tree.name in ("wildcard", "cidrMatch"):
-            if isinstance(tree.arguments[0], Field):
-                return FieldComparison(tree.arguments[0], OrValues(tree.arguments[1:]))
+        if tree.name in ("wildcard", "cidrMatch") and isinstance(
+            tree.arguments[0], Field
+        ):
+            return FieldComparison(tree.arguments[0], OrValues(tree.arguments[1:]))
 
-        raise eql.errors.EqlCompileError("Unable to convert `{}`".format(tree))
+        raise eql.errors.EqlCompileError(f"Unable to convert `{tree}`")
 
     def _walk_literal(self, tree):
         return Value.from_python(tree.value)
@@ -90,10 +97,7 @@ class Eql2Kql(DepthFirstWalker):
         return self.check_field_expression(tree.expression)
 
     def _walk_piped_query(self, tree):  # type: (eql.ast.PipedQuery) -> KqlNode
-        if not tree.pipes:
-            return tree.first
-
-        return AndExpr([tree.first] + tree.pipes)
+        return AndExpr([tree.first] + tree.pipes) if tree.pipes else tree.first
 
     LT, LE, EQ, NE, GE, GT = ('<', '<=', '==', '!=', '>=', '>')
     flipped = {LT: GE, LE: GT,
@@ -118,4 +122,4 @@ class Eql2Kql(DepthFirstWalker):
             else:
                 return FieldRange(left, op, right)
 
-        raise eql.errors.EqlCompileError("Unable to convert {}".format(tree))
+        raise eql.errors.EqlCompileError(f"Unable to convert {tree}")

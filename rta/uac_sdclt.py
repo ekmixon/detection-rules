@@ -24,7 +24,7 @@ from . import common
 def main(target_process=common.get_path("bin", "myapp.exe")):
     target_process = os.path.abspath(target_process)
 
-    common.log("Bypass UAC via Sdclt to run %s" % target_process)
+    common.log(f"Bypass UAC via Sdclt to run {target_process}")
 
     key = "Software\\Classes\\exefile\\shell\\runas\\command"
     value = "IsolatedCommand"

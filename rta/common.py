@@ -79,7 +79,7 @@ else:
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ALL_IP = "0.0.0.0"
 IP_REGEX = r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
-CALLBACK_REGEX = r"https?://" + IP_REGEX + r":\d+"
+CALLBACK_REGEX = f"https?://{IP_REGEX}" + r":\d+"
 
 USER_NAME = getpass.getuser().lower()
 
@@ -140,9 +140,9 @@ def check_dependencies(*paths):
     missing = []
     for path in paths:
         if not os.path.exists(path):
-            log("Missing dependency %s" % path, "!")
+            log(f"Missing dependency {path}", "!")
             missing.append(path)
-    return len(missing) == 0
+    return not missing
 
 
 def dependencies(*paths):
@@ -155,12 +155,18 @@ def dependencies(*paths):
         @functools.wraps(f)
         def decorated(*args, **kwargs):
             if len(missing):
-                log("Missing dependencies for %s:%s()" % (f.func_code.co_filename, f.func_code.co_name), "!")
+                log(
+                    f"Missing dependencies for {f.func_code.co_filename}:{f.func_code.co_name}()",
+                    "!",
+                )
+
                 for dep in missing:
-                    print("    - %s" % os.path.relpath(dep, BASE_DIR))
+                    print(f"    - {os.path.relpath(dep, BASE_DIR)}")
                 return MISSING_DEPENDENCIES
             return f(*args, **kwargs)
+
         return decorated
+
     return decorator
 
 
@@ -214,7 +220,7 @@ def execute(command, hide_log=False, mute=False, timeout=30, wait=True, kill=Fal
         sys.stderr.write("Deprecation warning! Switch arguments to a list for common.execute()\n\n")
 
     if not hide_log:
-        print("%s @ %s > %s" % (USER_NAME, HOSTNAME, command_string))
+        print(f"{USER_NAME} @ {HOSTNAME} > {command_string}")
 
     if isinstance(stdin, (bytes, str, type(u""))):
         stdin, close = temporary_file_helper(stdin)
@@ -240,24 +246,17 @@ def execute(command, hide_log=False, mute=False, timeout=30, wait=True, kill=Fal
                 return
 
         log("Killing process", str(p.pid))
-        try:
+        with contextlib.suppress(OSError):
             p.kill()
             time.sleep(0.5)
-        except OSError:
-            pass
     elif wait:
         output = ''
 
         if not stdin:
-            try:
+            with contextlib.suppress(IOError):
                 p.stdin.write(os.linesep.encode('ascii'))
-            except IOError:
-                # this pipe randomly breaks when executing certain non-zero exit commands on linux
-                pass
-
         while p.poll() is None:
-            line = p.stdout.readline().decode('ascii', 'ignore')
-            if line:
+            if line := p.stdout.readline().decode('ascii', 'ignore'):
                 output += line
                 if not (hide_log or mute):
                     print(line.rstrip())
@@ -288,22 +287,22 @@ def execute(command, hide_log=False, mute=False, timeout=30, wait=True, kill=Fal
 
 
 def log(message, log_type='+'):
-    print('[%s] %s' % (log_type, message))
+    print(f'[{log_type}] {message}')
 
 
 def copy_file(source, target):
-    log('Copying %s -> %s' % (source, target))
+    log(f'Copying {source} -> {target}')
     shutil.copy(source, target)
 
 
 def link_file(source, target):
-    log('Linking %s -> %s' % (source, target))
+    log(f'Linking {source} -> {target}')
     execute(["ln", "-s", source, target])
 
 
 def remove_file(path):
     if os.path.exists(path):
-        log('Removing %s' % path, log_type='-')
+        log(f'Removing {path}', log_type='-')
         # Try three times to remove the file
         for _ in range(3):
             try:
@@ -348,12 +347,9 @@ def serve_web(ip=None, port=None, directory=BASE_DIR):
     else:
         # Otherwise, try to find a port
         for port in range(8000, 9000):
-            try:
+            with contextlib.suppress(socket.error):
                 server = TCPServer((ip, port), handler)
                 break
-            except socket.error:
-                pass
-
     def server_thread():
         log("Starting web server on http://{ip}:{port:d} for directory {dir}".format(ip=ip, port=port, dir=directory))
         os.chdir(directory)
@@ -370,8 +366,10 @@ def serve_web(ip=None, port=None, directory=BASE_DIR):
 
 def patch_file(source_file, old_bytes, new_bytes, target_file=None):
     target_file = target_file or target_file
-    log("Patching bytes %s [%s] --> %s [%s]" % (source_file, binascii.b2a_hex(old_bytes),
-                                                target_file, binascii.b2a_hex(new_bytes)))
+    log(
+        f"Patching bytes {source_file} [{binascii.b2a_hex(old_bytes)}] --> {target_file} [{binascii.b2a_hex(new_bytes)}]"
+    )
+
 
     with open(source_file, "rb") as f:
         contents = f.read()
@@ -386,14 +384,14 @@ def patch_regex(source_file, regex, new_bytes, target_file=None):
     regex = regex.encode('ascii')
     new_bytes = new_bytes.encode('ascii')
     target_file = target_file or source_file
-    log("Patching by regex %s --> %s" % (source_file, target_file))
+    log(f"Patching by regex {source_file} --> {target_file}")
 
     with open(source_file, "rb") as f:
         contents = f.read()
 
     matches = re.findall(regex, contents)
 
-    log("Changing %s -> %s" % (', '.join('{}'.format(m) for m in matches), new_bytes))
+    log(f"Changing {', '.join(f'{m}' for m in matches)} -> {new_bytes}")
     contents = re.sub(regex, new_bytes, contents)
 
     with open(target_file, "wb") as f:
@@ -426,7 +424,7 @@ def find_remote_host():
                              stdin=subprocess.PIPE)
         pending[name] = p
 
-    if len(pending) > 0:
+    if pending:
         # See which ones return first with a success code, and use that host
         for _ in range(20):
             for hostname, pending_process in sorted(pending.items()):
@@ -436,12 +434,16 @@ def find_remote_host():
                     # Now need to get the IP address
                     ip = get_ipv4_address(hostname)
                     if ip is not None:
-                        log('Using remote host %s (%s)' % (ip, hostname))
+                        log(f'Using remote host {ip} ({hostname})')
                         return ip
                     pending.pop(hostname)
             time.sleep(0.5)
 
-    log("Unable to find a remote host to pivot to. Using local host %s" % HOSTNAME, log_type="!")
+    log(
+        f"Unable to find a remote host to pivot to. Using local host {HOSTNAME}",
+        log_type="!",
+    )
+
     return get_ip()
 
 
@@ -454,23 +456,19 @@ def get_ipv4_address(hostname):
         return None
 
     addresses = re.findall(IP_REGEX, output)
-    if len(addresses) == 0:
-        return None
-    return addresses[0]
+    return None if len(addresses) == 0 else addresses[0]
 
 
 def find_writeable_directory(base_dir):
     for root, dirs, files in os.walk(base_dir):
         for d in dirs:
             subdir = os.path.join(base_dir, d)
-            try:
+            with contextlib.suppress(IOError):
                 test_file = os.path.join(subdir, "test_file")
                 f = open(test_file, "w")
                 f.close()
                 os.remove(test_file)
                 return subdir
-            except IOError:
-                pass
 
 
 def check_system():
@@ -542,7 +540,7 @@ def temporary_reg(hive, key, value, data, data_type="sz", restore=True, pause=Fa
         hive = hives[hive.lower()]
 
     if isinstance(data_type, strings):
-        attr = 'REG_' + data_type.upper()
+        attr = f'REG_{data_type.upper()}'
         data_type = getattr(winreg, attr)
 
     if data_type is None:
@@ -579,7 +577,7 @@ def temporary_reg(hive, key, value, data, data_type="sz", restore=True, pause=Fa
     stored, code = winreg.QueryValueEx(hkey, value)
 
     if data != stored:
-        log("Wrote %s but retrieved %s" % (data, stored), log_type="-")
+        log(f"Wrote {data} but retrieved {stored}", log_type="-")
 
     # Allow code to execute within the context manager 'with'
     try:
@@ -609,11 +607,11 @@ def temporary_reg(hive, key, value, data, data_type="sz", restore=True, pause=Fa
 def enable_logon_auditing(host='localhost', verbose=True, sleep=2):
     """Enable logon auditing on local or remote system to enable 4624 and 4625 events."""
     if verbose:
-        log('Ensuring audit logging enabled on {}'.format(host))
+        log(f'Ensuring audit logging enabled on {host}')
 
     auditpol = 'auditpol.exe /set /subcategory:Logon /failure:enable /success:enable'
-    enable_logging = "Invoke-WmiMethod -ComputerName {} -Class Win32_process -Name create -ArgumentList '{}'".format(
-        host, auditpol)
+    enable_logging = f"Invoke-WmiMethod -ComputerName {host} -Class Win32_process -Name create -ArgumentList '{auditpol}'"
+
     command = ['powershell', '-c', enable_logging]
     enable = execute(command)
 

@@ -25,12 +25,12 @@ TRIPLE_DQ = DQ * 3
 @cached
 def get_preserved_fmt_fields():
     from .rule import BaseRuleData
-    preserved_keys = set()
-
-    for field in dataclasses.fields(BaseRuleData):  # type: dataclasses.Field
-        if field.type in (definitions.Markdown, typing.Optional[definitions.Markdown]):
-            preserved_keys.add(field.metadata.get("data_key", field.name))
-    return preserved_keys
+    return {
+        field.metadata.get("data_key", field.name)
+        for field in dataclasses.fields(BaseRuleData)
+        if field.type
+        in (definitions.Markdown, typing.Optional[definitions.Markdown])
+    }
 
 
 def cleanup_whitespace(val):
@@ -66,7 +66,7 @@ def wrap_text(v, block_indent=0, join=False):
     lines = textwrap.wrap(v, initial_indent=' ' * block_indent, subsequent_indent=' ' * block_indent, width=120,
                           break_long_words=False, break_on_hyphens=False)
     lines = [line + '\n' for line in lines]
-    return lines if not join else ''.join(lines)
+    return ''.join(lines) if join else lines
 
 
 class NonformattedField(str):
@@ -115,15 +115,15 @@ class RuleTomlEncoder(toml.TomlEncoder):
         if not v:
             return "[]"
 
-        retval = "[" + str(self.dump_value(v[0])) + ","
+        retval = f"[{str(self.dump_value(v[0]))},"
         for u in v[1:]:
-            retval += " " + str(self.dump_value(u)) + ","
+            retval += f" {str(self.dump_value(u))},"
         retval = retval.rstrip(',') + "]"
         return retval
 
     def dump_list(self, v):
         """Dump a list more cleanly."""
-        if all([isinstance(d, str) for d in v]) and sum(len(d) + 3 for d in v) > 100:
+        if all(isinstance(d, str) for d in v) and sum(len(d) + 3 for d in v) > 100:
             dump = []
             for item in v:
                 if len(item) > (120 - 4 - 3 - 3) and ' ' in item:
@@ -142,7 +142,7 @@ def toml_write(rule_contents, outfile=None):
             if nl:
                 outfile.write(u"\n")
         else:
-            print(text, end='' if not nl else '\n')
+            print(text, end='\n' if nl else '')
 
     encoder = RuleTomlEncoder()
     contents = copy.deepcopy(rule_contents)
@@ -173,7 +173,7 @@ def toml_write(rule_contents, outfile=None):
             if isinstance(v, dict):
                 bottom[k] = OrderedDict(sorted(v.items()))
             elif isinstance(v, list):
-                if any([isinstance(value, (dict, list)) for value in v]):
+                if any(isinstance(value, (dict, list)) for value in v):
                     bottom[k] = v
                 else:
                     top[k] = v
